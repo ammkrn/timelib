@@ -21,6 +21,9 @@ structure NaiveDateTime where
   nanos : Int
 deriving DecidableEq, Ord, Repr
 
+instance : Inhabited NaiveDateTime where
+  default := ⟨0⟩
+
 /-
 Using `Int.fdiv`, because we have a positive denominator, and we want to round 
 down if `dt.nanos` is negative, up if it's nonnegative.
@@ -89,10 +92,12 @@ def NaiveDateTime.fromNanos : Int → NaiveDateTime := NaiveDateTime.mk
 
 def NaiveDateTime.toYmd (d : NaiveDateTime) : Ymd := d.toScalarDate.toYmd
 
+def NaiveDateTime.year (d : NaiveDateTime) : Year := d.toScalarDate.year
+
 instance : ToString NaiveDateTime where
   toString dt :=
     let ⟨y, m, d, _, _⟩ := dt.toYmd
-    let t : String := ToString.toString <| NaiveClockTime.mk (Fin.ofInt'' dt.nanos)
+    let t : String := ToString.toString <| NaiveClockTime.mk (Fin.ofInt'' (dt.nanos % (↑oneDayNanos)))
     s!"{y}/{m.toNat}/{d}; {t}"
 
 @[reducible]
