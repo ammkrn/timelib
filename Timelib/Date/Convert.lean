@@ -359,3 +359,10 @@ def ScalarDate.toYmd (date : ScalarDate) : Ymd := date.toOrdinalDate.toYmd
 
 def ScalarDate.year (d : ScalarDate) : Year := d.toYmd.year
 
+def ScalarDate.fromYmd 
+  (y : Year) 
+  (m : Month) 
+  (d : Nat)  
+  (dayGe : d >= 1 := by decide)
+  (dayLe : d <= m.numDays y := by decide) : ScalarDate :=
+  (Ymd.mk y m d dayGe dayLe).toScalarDate

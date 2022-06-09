@@ -14,22 +14,20 @@ import Timelib.NanoPrecision.TimeZone.Basic
 
 structure Offset extends TimeZone where
   identifier : String
-  utcToTaiAmt : NaiveDateTime → SignedDuration
-  taiToUtcAmt : NaiveDateTime → SignedDuration
+  leapSecondsToApply : NaiveDateTime → SignedDuration
+  leapSecondsToRemove : NaiveDateTime → SignedDuration
 
-def Offset.taiToUtc (ω : Offset) (t : NaiveDateTime) := t + (ω.taiToUtcAmt t) 
-def Offset.utcToTai (ω : Offset) (t : NaiveDateTime) := t + (ω.utcToTaiAmt t) 
+abbrev Offset.timeZoneOffset (ω : Offset) := ω.toTimeZone.offset
+abbrev Offset.taiToUtc (ω : Offset) (t : NaiveDateTime) := t + (ω.leapSecondsToApply t) 
+abbrev Offset.utcToTai (ω : Offset) (t : NaiveDateTime) := t + (ω.leapSecondsToRemove t) 
 
-/- The offset you would apply to go from TAI to local time -/
-def Offset.fullLocalOffset (ω : Offset) (t : NaiveDateTime) := (ω.taiToUtcAmt t) + ω.toTimeZone.offset
-
-/- The offset you would remove to go from local to TAI time -/
-def Offset.fullLocalOffsetRev (ω : Offset) (loc : NaiveDateTime) := 
-  (-ω.toTimeZone.offset) + (ω.utcToTai (loc - ω.toTimeZone.offset))
-
+/--
+An `Offset` is lawful if the functions returning leap seconds to remove
+and apply are isomorphic.
+-/
 class LawfulOffset (ω : Offset) where
-  applyRemoveIso : ∀ (parsed : NaiveDateTime), ω.taiToUtc (ω.utcToTai parsed) = parsed
-  removeApplyIso : ∀ (tai : NaiveDateTime), ω.utcToTai (ω.taiToUtc tai) = tai
+  applyRemoveIso : ω.taiToUtc ∘ ω.utcToTai = id
+  removeApplyIso : ω.utcToTai ∘ ω.taiToUtc = id
 
 structure DateTime (ω : Offset) where
   naive : NaiveDateTime
@@ -37,36 +35,6 @@ structure DateTime (ω : Offset) where
 section DateTimeStuff
 
 variable {ω π : Offset}
-
-/--
-The underlying naive date time with the time zone and appropriate leap seconds applied.
--/
-@[simp, reducible] 
-abbrev DateTime.fullLocalOffset (t : DateTime ω) : SignedDuration := ω.fullLocalOffset t.naive
-
-def DateTime.localDateTime (t : DateTime ω) : NaiveDateTime := 
-  t.naive + t.fullLocalOffset
-
-/-- 
-Use cases for this are probably rare, so make sure you know what you're getting.
-
-`compareLocalTimes` compares the literal calendar/wall clock datetimes from two time 
-stamps, without any regard for what underlying time they represent.
--/
-def DateTime.compareLocal (t₁ : DateTime ω) (t₂ : DateTime π) : Ordering :=
-  Ord.compare t₁.localDateTime t₂.localDateTime
-
-def DateTime.localScalarDate (t : DateTime ω) : ScalarDate := t.localDateTime.toScalarDate
-def DateTime.localYmd (t : DateTime ω) : Ymd := t.localDateTime.toYmd
-def DateTime.localYear (t : DateTime ω) : Year := t.localScalarDate.year
-
-/--
-Convert a `NaiveDateTime` that has the offet's timezone and leap seconds already
-applied, and convert it into a `DateTime`.
--/
-def DateTime.fromLocalNaive (t : NaiveDateTime) : DateTime ω := 
-  let utc := (t - ω.toTimeZone.offset) 
-  ⟨utc + ω.utcToTaiAmt utc⟩
 
 theorem DateTime.eq_of_val_eq : ∀ {d₁ d₂ : DateTime ω} (h : d₁.naive = d₂.naive), d₁ = d₂
 | ⟨_⟩, _, rfl => rfl
@@ -132,18 +100,52 @@ theorem DateTime.hAdd_signed_assoc (d : DateTime ω) (dur₁ dur₂ : SignedDura
 theorem DateTime.hAdd_signed_comm (d : DateTime ω) (dur : SignedDuration) : d + dur = dur + d := by
   simp [DateTime.hAdd_signed_def, NaiveDateTime.hAdd_signed_def, DateTime.hAdd_signed_def_rev, NaiveDateTime.hAdd_signed_def_rev]
 
+/--
+Add appropriate leap seconds and the timezone offset to the underlying
+naive/TAI DateTime to get the full local DateTime as a `NaiveDateTime`. 
+-/
+def DateTime.localDateTime (t : DateTime ω) : NaiveDateTime := 
+  /- The utc time; the naive time + leap seconds -/
+  let utc := t.naive + (ω.leapSecondsToApply t.naive)
+  utc + ω.timeZoneOffset
+
+/-- 
+Use cases for this are probably rare, so make sure you know what you're getting.
+
+`compareLocalTimes` compares the literal calendar/wall clock datetimes from two time 
+stamps, without any regard for what underlying time they represent.
+-/
+def DateTime.compareLocal (t₁ : DateTime ω) (t₂ : DateTime π) : Ordering :=
+  Ord.compare t₁.localDateTime t₂.localDateTime
+
+def DateTime.localScalarDate (t : DateTime ω) : ScalarDate := t.localDateTime.toScalarDate
+def DateTime.localYmd (t : DateTime ω) : Ymd := t.localDateTime.toYmd
+def DateTime.localYear (t : DateTime ω) : Year := t.localScalarDate.year
+
+/--
+Convert a `NaiveDateTime` that is local (has leap seconds and timezone offset applied)
+and convert it to a `DateTime`.
+-/
+def DateTime.fromLocalNaive (t : NaiveDateTime) : DateTime ω := 
+  /- Remove the timezone offset to get utc -/
+  let utc := t - ω.timeZoneOffset
+  /- Add whatever the corresponding `leapSecondsToRemove` value is -/
+  ⟨utc + ω.leapSecondsToRemove utc⟩
+
 end DateTimeStuff
 
 @[reducible]
-def Offset.smeared (tz : TimeZone) : Offset := {
+def Offset.leapSmear (tz : TimeZone) : Offset := {
   name := tz.name
   abbreviation := tz.abbreviation
   offset := tz.offset
-  identifier := "smeared"
-  utcToTaiAmt := fun _ => 0
-  taiToUtcAmt := fun _ => 0
+  identifier := "Leap Smear"
+  leapSecondsToApply := fun _ => 0
+  leapSecondsToRemove := fun _ => 0
 }
 
-instance {tz : TimeZone} : LawfulOffset (Offset.smeared tz) where
-  applyRemoveIso := by simp [Offset.taiToUtc, Offset.utcToTai, NaiveDateTime.hAdd_signed_def]
-  removeApplyIso := by simp [Offset.taiToUtc, Offset.utcToTai, NaiveDateTime.hAdd_signed_def]
+instance {tz : TimeZone} : LawfulOffset (Offset.leapSmear tz) where
+  applyRemoveIso := by 
+    apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
+  removeApplyIso := by 
+    apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
