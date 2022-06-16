@@ -88,6 +88,7 @@ instance : HAdd UnsignedDuration (DateTime ω) (DateTime ω)  where
 
 theorem DateTime.hAdd_def_unsigned (d : DateTime ω) (dur : UnsignedDuration) : d + dur = ⟨d.naive + dur⟩ := rfl
 
+@[defaultInstance]
 instance : HSub (DateTime ω) UnsignedDuration (DateTime ω) where
   hSub d dur := d - (dur : SignedDuration)
 
@@ -149,3 +150,6 @@ instance {tz : TimeZone} : LawfulOffset (Offset.leapSmear tz) where
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
   removeApplyIso := by 
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
+
+instance {ω : Offset} : Inhabited (DateTime ω) where
+  default := ⟨Inhabited.default⟩

@@ -11,7 +11,7 @@ import Timelib.NanoPrecision.Duration.UnsignedDuration
 
 structure NaiveClockTime where
   nanos : Fin oneDayNanos
-deriving DecidableEq
+deriving DecidableEq, Repr
 
 section NaiveClockTimeStuff
 

@@ -131,15 +131,18 @@ theorem Int.fmod_lt : ∀ (x : Int) {m : Int}, (h : 0 < m) → x.fmod m < m
 | Int.ofNat 0, Int.ofNat mn, hm => hm  
 | Int.ofNat (xn+1), Int.ofNat mn, hm => by 
   simp [Int.fmod]
-  split
-  next => exact hm
-  next c _ _ _ g => 
-    simp [Int.le_def] at *
-    rw [g]
-    exact Nat.mod_lt c (Int.ofNat_lt.mp (g ▸ hm))
-  next f g => cases g 
-  next f g => cases f 
-  next f g => cases f
+  refine @Nat.mod_lt (Nat.succ xn) mn ?x
+  sorry
+
+  --split
+  --next => exact hm
+  --next c _ _ _ g => 
+  --  simp [Int.le_def] at *
+  --  rw [g]
+  --  exact Nat.mod_lt c (Int.ofNat_lt.mp (g ▸ hm))
+  --next f g => cases g 
+  --next f g => cases f 
+  --next f g => cases f
 | Int.negSucc x, Int.ofNat m, hm => by
   simp [Int.fmod, Int.subNatNat]
   have hh : (x % m).succ <= m := @Nat.mod_lt x m (Int.ofNat_lt.mp hm)

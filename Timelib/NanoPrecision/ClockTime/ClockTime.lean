@@ -13,7 +13,7 @@ import Timelib.NanoPrecision.ClockTime.NaiveClockTime
 
 structure ClockTime (A : TimeZone) where
   naive : NaiveClockTime
-deriving DecidableEq
+deriving DecidableEq, Repr
 
 section ClockTimeStuff
 
@@ -42,6 +42,7 @@ that of `Fin n`, wrapping into the previous clock cycle on underflow
 -/
 instance : HSub (ClockTime A) SignedDuration (ClockTime A) where
   hSub t d := ⟨t.naive - d⟩
+
 
 theorem ClockTime.hSub_signed_def (dur : SignedDuration) : t - dur = ⟨t.naive - dur⟩ := rfl
 
