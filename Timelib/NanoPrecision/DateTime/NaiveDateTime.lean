@@ -19,7 +19,7 @@ If negative, the number of nanoseconds until the epoch (midnight of 0001/Jan/01)
 -/
 structure NaiveDateTime where
   nanos : Int
-deriving DecidableEq, Ord, Repr
+deriving DecidableEq, Ord, Hashable, Repr
 
 instance : Inhabited NaiveDateTime where
   default := ⟨0⟩
@@ -105,7 +105,7 @@ def NaiveDateTime.dateEq : NaiveDateTime → NaiveDateTime → Prop
 | n₁, n₂ => n₁.toScalarDate = n₂.toScalarDate
 
 def NaiveDateTime.dateEq.Equivalence : Equivalence NaiveDateTime.dateEq := {
-  refl := fun d => rfl
+  refl := fun _ => rfl
   symm := fun h => h.symm
   trans := fun h h' => Eq.trans h h'
 }
@@ -162,3 +162,12 @@ theorem NaiveDateTime.hAdd_unsigned_sub_cancel (t : NaiveDateTime) (d : Unsigned
 theorem NaiveDateTime.hAdd_unsigned_sub_add_cancel (t : NaiveDateTime) (d : UnsignedDuration) : t - d + d = t := NaiveDateTime.hAdd_signed_sub_add_cancel t d
 
 theorem NaiveDateTime.hAdd_unsigned_comm (t : NaiveDateTime) (d : UnsignedDuration) : t + d = d + t := NaiveDateTime.hAdd_signed_comm t d
+
+/--
+Set the clock time of the current day to `tgt`.
+-/
+@[reducible]
+def NaiveDateTime.setClockTime (t : NaiveDateTime) (clockTime : NaiveClockTime) : NaiveDateTime :=
+  let days := (t.nanos.fdiv oneDayNanos) * oneDayNanos
+  ⟨days + clockTime.nanos.val⟩
+

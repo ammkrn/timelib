@@ -47,7 +47,7 @@ instance : HSub (ClockTime A) SignedDuration (ClockTime A) where
 theorem ClockTime.hSub_signed_def (dur : SignedDuration) : t - dur = ⟨t.naive - dur⟩ := rfl
 
 
-def ClockTime.applyTimeZone (t : ClockTime A) : NaiveClockTime := t.naive + A.offset
+def ClockTime.toLocalNaive (t : ClockTime A) : NaiveClockTime := t.naive + A.offset
 
 theorem ClockTime.apply_unapply : t + A.offset - A.offset = t := by
   simp [ClockTime.hAdd_signed_def, ClockTime.hSub_signed_def, NaiveClockTime.hAdd_signed_def, NaiveClockTime.hSub_signed_def, sub_eq_add_neg, add_assoc]
@@ -59,15 +59,19 @@ theorem ClockTime.unapply_apply : t - A.offset + A.offset = t := by
 The nanosecond component of a `ClockTime`. To convert the `ClockTime` to
 nanoseconds, use `ClockTime.asNanos`. 
 -/
-def ClockTime.nanoComponent (t : ClockTime A) : Nat := t.applyTimeZone.nanoComponent
-def ClockTime.secondComponent (t : ClockTime A) : Nat := t.applyTimeZone.secondComponent
-def ClockTime.minuteComponent (t : ClockTime A) : Nat := t.applyTimeZone.minuteComponent
-def ClockTime.hourComponent (t : ClockTime A) : Nat := t.applyTimeZone.hourComponent
+def ClockTime.nanoComponent (t : ClockTime A) : Nat := t.toLocalNaive.nanoComponent
+def ClockTime.secondComponent (t : ClockTime A) : Nat := t.toLocalNaive.secondComponent
+def ClockTime.minuteComponent (t : ClockTime A) : Nat := t.toLocalNaive.minuteComponent
+def ClockTime.hourComponent (t : ClockTime A) : Nat := t.toLocalNaive.hourComponent
 
 def ClockTime.fromNeutralSignedDuration (d : SignedDuration) : ClockTime A := ⟨NaiveClockTime.fromSignedDuration d⟩
 
 def ClockTime.fromNeutralHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : ClockTime A := 
   ClockTime.fromNeutralSignedDuration ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
+
+def ClockTime.fromLocalHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : ClockTime A := 
+  let dur : SignedDuration := ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
+  ⟨NaiveClockTime.fromSignedDuration (dur - A.offset)⟩
 
 instance : LT (ClockTime A) where
   lt := InvImage (instLTNaiveClockTime.lt) ClockTime.naive
@@ -99,7 +103,7 @@ instance : LinearOrder (ClockTime Z) where
 
 instance : ToString (ClockTime A) where
   toString t := 
-    let withTimeZone := t.applyTimeZone
+    let withTimeZone := t.toLocalNaive
     let h := String.leftpad 2 '0' (ToString.toString $ withTimeZone.hourComponent)
     let m := String.leftpad 2 '0' (ToString.toString $ withTimeZone.minuteComponent)
     let s := String.leftpad 2 '0' (ToString.toString $ withTimeZone.secondComponent)
@@ -107,4 +111,3 @@ instance : ToString (ClockTime A) where
   s!"{h}:{m}:{s}.{n}{A.abbreviation}" 
 
 end ClockTimeStuff 
-

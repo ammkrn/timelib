@@ -94,5 +94,4 @@ instance : ToString NaiveClockTime where
     let n := String.leftpad 9 '0' (ToString.toString $ t.nanoComponent)
   s!"{h}:{m}:{s}.{n}"
 
-end NaiveClockTimeStuff 
-
+end NaiveClockTimeStuff

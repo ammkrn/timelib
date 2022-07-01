@@ -32,14 +32,20 @@ class LawfulOffset (ω : Offset) where
 structure DateTime (ω : Offset) where
   naive : NaiveDateTime
 
+instance {ω : Offset} : Inhabited (DateTime ω) where
+  default := ⟨Inhabited.default⟩
+
+def DateTime.changeOffset {ω : Offset} (t : DateTime ω) (π : Offset) : DateTime π := ⟨t.naive⟩
+
 section DateTimeStuff
 
 variable {ω π : Offset}
 
-theorem DateTime.eq_of_val_eq : ∀ {d₁ d₂ : DateTime ω} (h : d₁.naive = d₂.naive), d₁ = d₂
+
+theorem DateTime.eq_of_val_eq : ∀ {d₁ d₂ : DateTime ω} (_ : d₁.naive = d₂.naive), d₁ = d₂
 | ⟨_⟩, _, rfl => rfl
 
-theorem DateTime.val_ne_of_ne : ∀ {d₁ d₂ : DateTime ω} (h : d₁ ≠ d₂), d₁.naive ≠ d₂.naive
+theorem DateTime.val_ne_of_ne : ∀ {d₁ d₂ : DateTime ω} (_ : d₁ ≠ d₂), d₁.naive ≠ d₂.naive
 | ⟨x⟩, ⟨y⟩, h => by intro hh; apply h; exact congrArg DateTime.mk hh
 
 /-- Compares the underlying naive/TAI DateTime -/
@@ -102,27 +108,15 @@ theorem DateTime.hAdd_signed_comm (d : DateTime ω) (dur : SignedDuration) : d +
   simp [DateTime.hAdd_signed_def, NaiveDateTime.hAdd_signed_def, DateTime.hAdd_signed_def_rev, NaiveDateTime.hAdd_signed_def_rev]
 
 /--
-Add appropriate leap seconds and the timezone offset to the underlying
-naive/TAI DateTime to get the full local DateTime as a `NaiveDateTime`. 
+Incorporate the relevant leap seconds and the timezone offset, creating
+a `NaiveDateTime` that carries the local number of nanos.
 -/
-def DateTime.localDateTime (t : DateTime ω) : NaiveDateTime := 
+def DateTime.toLocalNaive (t : DateTime ω) : NaiveDateTime := 
   /- The utc time; the naive time + leap seconds -/
   let utc := t.naive + (ω.leapSecondsToApply t.naive)
   utc + ω.timeZoneOffset
 
-/-- 
-Use cases for this are probably rare, so make sure you know what you're getting.
-
-`compareLocalTimes` compares the literal calendar/wall clock datetimes from two time 
-stamps, without any regard for what underlying time they represent.
--/
-def DateTime.compareLocal (t₁ : DateTime ω) (t₂ : DateTime π) : Ordering :=
-  Ord.compare t₁.localDateTime t₂.localDateTime
-
-def DateTime.localScalarDate (t : DateTime ω) : ScalarDate := t.localDateTime.toScalarDate
-def DateTime.localYmd (t : DateTime ω) : Ymd := t.localDateTime.toYmd
-def DateTime.localYear (t : DateTime ω) : Year := t.localScalarDate.year
-
+def DateTime.fromTai (t : NaiveDateTime) : DateTime ω := ⟨t⟩
 /--
 Convert a `NaiveDateTime` that is local (has leap seconds and timezone offset applied)
 and convert it to a `DateTime`.
@@ -133,14 +127,65 @@ def DateTime.fromLocalNaive (t : NaiveDateTime) : DateTime ω :=
   /- Add whatever the corresponding `leapSecondsToRemove` value is -/
   ⟨utc + ω.leapSecondsToRemove utc⟩
 
+/--
+-/
+def DateTime.fromLocalYmdsn 
+  (y : Year) 
+  (m : Month) 
+  (d : Nat) 
+  (s : Nat)
+  (n : Nat)
+  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : DateTime ω := 
+  DateTime.fromLocalNaive (NaiveDateTime.fromYmdsn y m d s n hd)
+
+/--
+Set the local clock time without changing the date.
+
+For example
+t : DateTime ω := LOCAL 2022/6/12 @ 11:00:00.0
+t.setLocalClockTime (3:00:00.0)
+= LOCAL 2022/6/12 @ 3:00:00.0
+-/
+def DateTime.setLocalClockTime (t : DateTime ω) (c : NaiveClockTime) : DateTime ω :=
+  DateTime.fromLocalNaive (t.toLocalNaive.setClockTime c)
+
+/-- 
+Use cases for this are probably rare, so make sure you know what you're getting.
+
+`compareLocalTimes` compares the literal calendar/wall clock datetimes from two time 
+stamps, without any regard for what underlying time they represent.
+-/
+def DateTime.compareLocal (t₁ : DateTime ω) (t₂ : DateTime π) : Ordering :=
+  Ord.compare t₁.toLocalNaive t₂.toLocalNaive
+
+def DateTime.localScalarDate (t : DateTime ω) : ScalarDate := t.toLocalNaive.toScalarDate
+def DateTime.localYmd (t : DateTime ω) : Ymd := t.toLocalNaive.toYmd
+def DateTime.localYear (t : DateTime ω) : Year := t.localScalarDate.year
+
 end DateTimeStuff
 
 @[reducible]
+def Offset.tai : Offset := {
+  name := "International Atomic Time"
+  abbreviation := "TAI"
+  offset := 0
+  identifier := ""
+  leapSecondsToApply := fun _ => 0
+  leapSecondsToRemove := fun _ => 0
+}
+
+instance : LawfulOffset Offset.tai where
+  applyRemoveIso := by 
+    apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
+  removeApplyIso := by 
+    apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
+
+@[reducible]
 def Offset.leapSmear (tz : TimeZone) : Offset := {
-  name := tz.name
-  abbreviation := tz.abbreviation
+  name := ""
+  abbreviation := ""
   offset := tz.offset
-  identifier := "Leap Smear"
+  identifier := ""
   leapSecondsToApply := fun _ => 0
   leapSecondsToRemove := fun _ => 0
 }
@@ -151,5 +196,11 @@ instance {tz : TimeZone} : LawfulOffset (Offset.leapSmear tz) where
   removeApplyIso := by 
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
 
-instance {ω : Offset} : Inhabited (DateTime ω) where
-  default := ⟨Inhabited.default⟩
+/-
+This definition of TAI time is convenient because it allows for comparison with 
+other elements of `DateTime ω`, and preserves type safety relative to `NaiveDateTime`, 
+which carries no assertion that it represents a TAI date/time element.
+-/
+@[reducible]
+def TaiDateTime := DateTime Offset.tai
+
