@@ -70,7 +70,14 @@ theorem Year.nthKDayOfMonth_preserves (y : Year) (n : Nat) (k : Nat) (m : Month)
   (y.nthKDayOfMonth n k m hk hn).day.rataDie = k := sorry
 
 def Year.firstKDayOfMonth (y : Year) (k : Nat) (m : Month) (hk : k < 7 := by decide) : ScalarDate :=
+  y.nthKDayOfMonth 1 k m hk
+
+def Year.firstKDayOfMonth' (y : Year) (k : Nat) (m : Month) (hk : k < 7 := by decide) : ScalarDate :=
   (ScalarDate.firstOfTheMonth y m).firstKDay k hk
+
+theorem firstKDayOfMonth_eq (y : Year) (k : Nat) (m : Month) (h : k < 7) : y.firstKDayOfMonth k m h = y.firstKDayOfMonth' k m h := by
+  simp [Year.firstKDayOfMonth, Year.firstKDayOfMonth', Year.nthKDayOfMonth, ScalarDate.firstKDay]
 
 def Year.lastKDayOfMonth (y : Year) (k : Nat) (m : Month) (hk : k < 7 := by decide) : ScalarDate :=
   (ScalarDate.lastOfTheMonth y m).lastKDay k hk
+

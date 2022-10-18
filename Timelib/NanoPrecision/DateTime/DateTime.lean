@@ -11,7 +11,11 @@ import Timelib.NanoPrecision.Duration.SignedDuration
 import Timelib.NanoPrecision.Duration.UnsignedDuration
 import Timelib.NanoPrecision.DateTime.NaiveDateTime
 import Timelib.NanoPrecision.TimeZone.Basic
+import Lean.Data.Json
 
+/-
+I think you want a TAI type for the marker aspect if nothing else.
+-/
 structure Offset extends TimeZone where
   identifier : String
   leapSecondsToApply : NaiveDateTime → SignedDuration
@@ -29,12 +33,23 @@ class LawfulOffset (ω : Offset) where
   applyRemoveIso : ω.taiToUtc ∘ ω.utcToTai = id
   removeApplyIso : ω.utcToTai ∘ ω.taiToUtc = id
 
+/--
+The integer numberof TAI nanoseconds, relative to a zero of Janauary 1, year 1 in the Gregorian calendar.
+If positive, the underlying number of TAI nanoseconds greater than the dawn of 1/1/1.
+If negative, the number of TAI nanoseconds less than the dawn of 1/1/1.
+-/
 structure DateTime (ω : Offset) where
   naive : NaiveDateTime
+deriving DecidableEq, Repr, Hashable, Lean.FromJson, Lean.ToJson
+
 
 instance {ω : Offset} : Inhabited (DateTime ω) where
   default := ⟨Inhabited.default⟩
 
+/--
+This is a safe conversion since the underlying time is tracked
+using a `NaiveDateTime` that represents a TAI date/time.
+-/
 def DateTime.changeOffset {ω : Offset} (t : DateTime ω) (π : Offset) : DateTime π := ⟨t.naive⟩
 
 section DateTimeStuff
@@ -116,6 +131,11 @@ def DateTime.toLocalNaive (t : DateTime ω) : NaiveDateTime :=
   let utc := t.naive + (ω.leapSecondsToApply t.naive)
   utc + ω.timeZoneOffset
 
+/--
+Convert a `NaiveDateTime` representing a 
+-/
+--def DateTime.fromTai (t : TaiDateTime) : DateTime ω := ⟨t⟩
+-- vv This definition sort of makes more sense
 def DateTime.fromTai (t : NaiveDateTime) : DateTime ω := ⟨t⟩
 /--
 Convert a `NaiveDateTime` that is local (has leap seconds and timezone offset applied)
@@ -180,11 +200,23 @@ instance : LawfulOffset Offset.tai where
   removeApplyIso := by 
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
 
+/--
+The `leapSmear` offset should NOT be used as a way of representing TAI time, or another
+time metric that ignores leap seconds (for that, see )
+While leap smearing ostensibly looks the same as TAI, there's a specific connotation
+in the type, which is that the oracle/reference being used IS actually accounting for some
+agreed-upon number of leap seconds and incorporating them into the time-stamps.
+
+LeapSmear has a specific connotation, particularly in that it shouldn't display
+"60" as a number of seconds.
+-/
 @[reducible]
 def Offset.leapSmear (tz : TimeZone) : Offset := {
   name := ""
   abbreviation := ""
   offset := tz.offset
+  -- This identifier should be changed to the user's preference; users will want to use this to identify the
+  -- oracle that's being used for the smear values.
   identifier := ""
   leapSecondsToApply := fun _ => 0
   leapSecondsToRemove := fun _ => 0
@@ -197,10 +229,9 @@ instance {tz : TimeZone} : LawfulOffset (Offset.leapSmear tz) where
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
 
 /-
-This definition of TAI time is convenient because it allows for comparison with 
-other elements of `DateTime ω`, and preserves type safety relative to `NaiveDateTime`, 
-which carries no assertion that it represents a TAI date/time element.
+This definition of TAI time is convenient because it allows for comparison with other elements of `DateTime ω`,
+and preserves type safety relative to `NaiveDateTime`, which carries no assertion that it represents
+a TAI date/time element.
 -/
 @[reducible]
 def TaiDateTime := DateTime Offset.tai
-

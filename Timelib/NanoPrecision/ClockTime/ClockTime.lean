@@ -10,10 +10,11 @@ import Timelib.NanoPrecision.TimeZone.Basic
 import Timelib.NanoPrecision.Duration.SignedDuration
 import Timelib.NanoPrecision.Duration.UnsignedDuration
 import Timelib.NanoPrecision.ClockTime.NaiveClockTime
+import Lean.Data.Json
 
 structure ClockTime (A : TimeZone) where
   naive : NaiveClockTime
-deriving DecidableEq, Repr
+deriving DecidableEq, Ord, Hashable, Repr, Lean.ToJson, Lean.FromJson
 
 section ClockTimeStuff
 

@@ -6,6 +6,7 @@ import Mathlib.Init.Data.Int.Basic
 import Mathlib.Init.Data.Int.Order
 import Mathlib.Data.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
+import Lean.Data.Json
 
 theorem h100 : ((146096 : Int) / 36524) * 100 = 400 := by decide
 theorem h4 : ((146096 : Int) % 36524) / 1461 * 4 = 0 := by decide
@@ -343,3 +344,14 @@ theorem toOrdinalDate_helper1 : ∀ {x : Int}, 1 <= x → 1 <= x.toNat
   have h_eq_zero : xN = 0 := Nat.eq_zero_of_le_zero (Nat.le_of_lt_succ (lt_of_not_ge h') : xN <= 0)
   rw [h_eq_zero] at h
   cases h
+
+instance {n : Nat} : Lean.ToJson (Fin n) where
+  toJson fin := 
+    Lean.Json.mkObj [("val", Lean.ToJson.toJson fin.val)]
+
+instance {n : Nat} : Lean.FromJson (Fin n) where
+  fromJson? j := do
+    let (val : Nat) ← (Lean.fromJson? (← j.getObjVal? "val"))
+    if h : val < n
+    then return Fin.mk val h
+    else Except.error s!"Fin.val out of range: {val} is not less than {n}"

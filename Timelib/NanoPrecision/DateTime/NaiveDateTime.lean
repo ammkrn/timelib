@@ -12,6 +12,7 @@ import Timelib.Date.Convert
 import Timelib.NanoPrecision.Duration.SignedDuration
 import Timelib.NanoPrecision.Duration.UnsignedDuration
 import Timelib.NanoPrecision.ClockTime.NaiveClockTime
+import Lean.Data.Json
 
 /--
 If nonnegative, the number of nanoseconds since the epoch (midnight of 0001/Jan/01)
@@ -19,7 +20,7 @@ If negative, the number of nanoseconds until the epoch (midnight of 0001/Jan/01)
 -/
 structure NaiveDateTime where
   nanos : Int
-deriving DecidableEq, Ord, Hashable, Repr
+deriving DecidableEq, Ord, Hashable, Repr, Lean.ToJson, Lean.FromJson
 
 instance : Inhabited NaiveDateTime where
   default := ⟨0⟩

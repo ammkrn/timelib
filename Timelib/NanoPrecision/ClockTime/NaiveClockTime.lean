@@ -8,10 +8,11 @@ import Mathlib.Data.Fin.Basic
 import Timelib.Util
 import Timelib.NanoPrecision.Duration.SignedDuration
 import Timelib.NanoPrecision.Duration.UnsignedDuration
+import Lean.Data.Json
 
 structure NaiveClockTime where
   nanos : Fin oneDayNanos
-deriving DecidableEq, Repr
+deriving DecidableEq, Ord, Hashable, Repr, Lean.ToJson, Lean.FromJson
 
 section NaiveClockTimeStuff
 

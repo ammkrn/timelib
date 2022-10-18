@@ -115,9 +115,6 @@ instance (n : Nat) : OfNat SignedDuration n where
 
 @[simp] theorem SignedDuration.zero_def : (0 : SignedDuration).val = (0 : Int) := by rfl
 
-instance : Neg SignedDuration where
-  neg d := ⟨-d.val⟩
-
 instance : ToString SignedDuration where
   toString d := 
     let pfx := if d.isNonNeg then "" else "-"
