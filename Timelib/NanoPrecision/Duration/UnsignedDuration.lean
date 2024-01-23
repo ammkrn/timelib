@@ -1,16 +1,16 @@
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Data.String.Defs
 import Mathlib.Data.String.Lemmas
 import Mathlib.Algebra.Group.Defs
 import Mathlib.Algebra.Ring.Basic
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Timelib.NanoPrecision.Duration.SignedDuration
 
-/-- 
-A unsigned duration in nanoseconds, implemented as a `Nat`. 
+/--
+A unsigned duration in nanoseconds, implemented as a `Nat`.
 
 Arithmetic behaves as on `Nat`.
 -/
@@ -22,28 +22,28 @@ instance : Coe UnsignedDuration SignedDuration where
   coe u := ⟨u.val⟩
 
 instance : Add UnsignedDuration where
-  add a b := ⟨a.val + b.val⟩ 
+  add a b := ⟨a.val + b.val⟩
 
 @[simp]
 theorem UnsignedDuration.add_def (a b : UnsignedDuration) : a + b = ⟨a.val + b.val⟩ := rfl
 
 instance : Sub UnsignedDuration where
-  sub a b := ⟨a.val - b.val⟩ 
+  sub a b := ⟨a.val - b.val⟩
 
-@[simp] 
+@[simp]
 theorem UnsignedDuration.sub_def (a b : UnsignedDuration) : a - b = ⟨a.val - b.val⟩ := rfl
 
 instance : HMul UnsignedDuration Nat UnsignedDuration where
-  hMul d n := ⟨d.val * n⟩ 
+  hMul d n := ⟨d.val * n⟩
 
 instance : HMod UnsignedDuration Nat UnsignedDuration where
-  hMod a n := ⟨a.val % n⟩ 
+  hMod a n := ⟨a.val % n⟩
 
 instance : HDiv UnsignedDuration Nat UnsignedDuration where
-  hDiv a b := ⟨a.val / b⟩ 
+  hDiv a b := ⟨a.val / b⟩
 
 instance : HPow UnsignedDuration Nat UnsignedDuration where
-  hPow a b := ⟨a.val ^ b⟩ 
+  hPow a b := ⟨a.val ^ b⟩
 
 instance : LT UnsignedDuration where
   lt := InvImage Nat.lt UnsignedDuration.val
@@ -71,11 +71,12 @@ instance : LinearOrder UnsignedDuration where
     apply UnsignedDuration.eq_of_val_eq
     exact le_antisymm h1 h2
   le_total := by simp [UnsignedDuration.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
+  compare_eq_compareOfLessAndEq := by sorry
 
-theorem UnsignedDuration.monotone {d₁ d₂ : UnsignedDuration} : d₁.val <= d₂.val -> d₁ <= d₂ := 
+theorem UnsignedDuration.monotone {d₁ d₂ : UnsignedDuration} : d₁.val <= d₂.val -> d₁ <= d₂ :=
   fun h => (UnsignedDuration.le_def) ▸ h
-  
+
 @[reducible] def UnsignedDuration.toNanos (d : UnsignedDuration) : Nat := d.val
 @[reducible] def UnsignedDuration.toSeconds (d : UnsignedDuration) : Nat := d.val / oneSecondNanos
 @[reducible] def UnsignedDuration.toMinutes (d : UnsignedDuration) : Nat := d.val / oneMinuteNanos
@@ -84,51 +85,51 @@ theorem UnsignedDuration.monotone {d₁ d₂ : UnsignedDuration} : d₁.val <= d
 @[reducible] def UnsignedDuration.toWeeks (d : UnsignedDuration) : Nat := d.val / oneWeekNanos
 @[reducible] def UnsignedDuration.toNonLeapYears (d : UnsignedDuration) : Nat := d.val / (365 * oneDayNanos)
 
-@[reducible] def UnsignedDuration.fromNanos (n : Nat) : UnsignedDuration := ⟨n⟩ 
+@[reducible] def UnsignedDuration.fromNanos (n : Nat) : UnsignedDuration := ⟨n⟩
 @[reducible] def UnsignedDuration.fromSeconds (n : Nat) : UnsignedDuration := ⟨n * oneSecondNanos⟩
-@[reducible] def UnsignedDuration.fromMinutes (n : Nat) : UnsignedDuration := ⟨n * oneMinuteNanos⟩ 
-@[reducible] def UnsignedDuration.fromHours (n : Nat) : UnsignedDuration := ⟨n * oneHourNanos⟩ 
+@[reducible] def UnsignedDuration.fromMinutes (n : Nat) : UnsignedDuration := ⟨n * oneMinuteNanos⟩
+@[reducible] def UnsignedDuration.fromHours (n : Nat) : UnsignedDuration := ⟨n * oneHourNanos⟩
 @[reducible] def UnsignedDuration.fromWeeks (n : Nat) : UnsignedDuration := ⟨n * oneWeekNanos⟩
-@[reducible] def UnsignedDuration.fromDays (n : Nat) : UnsignedDuration := ⟨n * oneDayNanos⟩ 
+@[reducible] def UnsignedDuration.fromDays (n : Nat) : UnsignedDuration := ⟨n * oneDayNanos⟩
 @[reducible] def UnsignedDuration.fromNonLeapYears (n : Nat) : UnsignedDuration := ⟨n * oneYearNanos⟩
 
 instance (n : Nat) : OfNat UnsignedDuration n where
-  ofNat := ⟨n⟩ 
+  ofNat := ⟨n⟩
 
 @[simp] theorem UnsignedDuration.zero_def : (0 : UnsignedDuration).val = (0 : Nat) := by rfl
 
 instance : ToString UnsignedDuration where
-  toString d := 
+  toString d :=
     let secs := String.leftpad 2 '0' s!"{d.toSeconds}"
     let nanos := String.leftpad 9 '0' s!"{d.toNanos % oneSecondNanos}"
     s!"P{secs}.{nanos}S"
 
 instance : AddCommSemigroup UnsignedDuration := {
   add_assoc := fun a b c => by simp [UnsignedDuration.add_def, AddSemigroup.add_assoc]
-  add_comm := fun a b => by simp [UnsignedDuration.add_def]; exact AddCommSemigroup.add_comm (A := Nat) _ _
+  add_comm := fun a b => by simp [UnsignedDuration.add_def]; exact AddCommSemigroup.add_comm (G := Nat) _ _
 }
 
-instance : IsAddLeftCancel UnsignedDuration where
+instance : IsLeftCancelAdd UnsignedDuration where
   add_left_cancel := fun a b c => by
-    simp [UnsignedDuration.add_def] 
+    simp [UnsignedDuration.add_def]
     have h0 := @Nat.add_left_cancel a.val b.val c.val
     intro h1
-    specialize h0 h1
-    exact UnsignedDuration.eq_of_val_eq h0
-  
-instance : IsAddRightCancel UnsignedDuration where
+    specialize h0
+    exact UnsignedDuration.eq_of_val_eq h1
+
+instance : IsRightCancelAdd UnsignedDuration where
   add_right_cancel := fun a b c => by
-    simp [UnsignedDuration.add_def] 
+    simp [UnsignedDuration.add_def]
     have h0 := @Nat.add_right_cancel b.val a.val c.val
     intro h1
-    specialize h0 h1
-    exact UnsignedDuration.eq_of_val_eq h0
+    specialize h0
+    exact UnsignedDuration.eq_of_val_eq h1
 
 instance : AddCommMonoid UnsignedDuration where
   add_zero := by simp [UnsignedDuration.eq_of_val_eq, UnsignedDuration.add_def, add_zero]
   zero_add := by simp [UnsignedDuration.eq_of_val_eq, UnsignedDuration.add_def, zero_add]
-  nsmul_zero' := by simp [nsmul_rec]
-  nsmul_succ' := by simp [nsmul_rec]
+  nsmul_zero := fun _ => rfl
+  nsmul_succ := fun _ _ => rfl
   add_comm := by simp [UnsignedDuration.eq_of_val_eq, UnsignedDuration.add_def, add_comm]
 
 instance : Equiv Nat UnsignedDuration where

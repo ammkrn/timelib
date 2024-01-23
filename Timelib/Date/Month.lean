@@ -1,12 +1,12 @@
 import Lean.Data.Json
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
 import Mathlib.Tactic.LibrarySearch
 import Mathlib.Tactic.SimpRw
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
 import Timelib.Date.Year
 
@@ -47,18 +47,18 @@ def Month.toNat : Month → Nat
 | november => 11
 | december => 12
 
-instance : OfNat Month (nat_lit 1) := ⟨Month.january⟩ 
-instance : OfNat Month (nat_lit 2) := ⟨Month.february⟩ 
-instance : OfNat Month (nat_lit 3) := ⟨Month.march⟩ 
-instance : OfNat Month (nat_lit 4) := ⟨Month.april⟩ 
-instance : OfNat Month (nat_lit 5) := ⟨Month.may⟩ 
-instance : OfNat Month (nat_lit 6) := ⟨Month.june⟩ 
-instance : OfNat Month (nat_lit 7) := ⟨Month.july⟩ 
-instance : OfNat Month (nat_lit 8) := ⟨Month.august⟩ 
-instance : OfNat Month (nat_lit 9) := ⟨Month.september⟩ 
+instance : OfNat Month (nat_lit 1) := ⟨Month.january⟩
+instance : OfNat Month (nat_lit 2) := ⟨Month.february⟩
+instance : OfNat Month (nat_lit 3) := ⟨Month.march⟩
+instance : OfNat Month (nat_lit 4) := ⟨Month.april⟩
+instance : OfNat Month (nat_lit 5) := ⟨Month.may⟩
+instance : OfNat Month (nat_lit 6) := ⟨Month.june⟩
+instance : OfNat Month (nat_lit 7) := ⟨Month.july⟩
+instance : OfNat Month (nat_lit 8) := ⟨Month.august⟩
+instance : OfNat Month (nat_lit 9) := ⟨Month.september⟩
 instance : OfNat Month (nat_lit 10) := ⟨Month.october⟩
-instance : OfNat Month (nat_lit 11) := ⟨Month.november⟩ 
-instance : OfNat Month (nat_lit 12) := ⟨Month.december⟩ 
+instance : OfNat Month (nat_lit 11) := ⟨Month.november⟩
+instance : OfNat Month (nat_lit 12) := ⟨Month.december⟩
 
 def Month.ofNat? : Nat → Option Month
 | 1 => some 1
@@ -78,7 +78,7 @@ def Month.ofNat? : Nat → Option Month
 instance : ToJson Month where
   toJson := ToJson.toJson ∘ Month.toNat
 
-instance : FromJson Month where 
+instance : FromJson Month where
   fromJson? j := do
     let n ← j.getNat?
     match Month.ofNat? n with
@@ -104,11 +104,11 @@ instance : LinearOrder Month where
   le_refl (a) := le_refl a.toNat
   le_trans (a b c) := Nat.le_trans
   lt_iff_le_not_le (a b) := Nat.lt_iff_le_not_le
-  le_antisymm (a b h1 h2) := by 
+  le_antisymm (a b h1 h2) := by
     apply Month.toNat.injective
     exact le_antisymm h1 h2
   le_total := by simp [Month.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
 
 instance : Ord Month := ⟨fun m₁ m₂ => compareOfLessAndEq m₁ m₂⟩
 
@@ -129,11 +129,17 @@ theorem Month.numDays_pos (month : Month) (year : Year) : 0 < month.numDays year
 theorem Month.numDays_lt_numDaysInGregorianYear (month : Month) (year : Year) : month.numDays year < year.numDaysInGregorianYear := by
   simp only [Month.numDays, Year.numDaysInGregorianYear]
   by_cases hy : year.isLeapYear
-  case pos => split <;> simp [hy, if_true]
-  case neg => split <;> simp [hy, if_false]
+  case pos => split <;> simp [hy, if_true] <;> decide
+  case neg => split <;> simp [hy, if_false] <;> decide
 
 theorem Month.numDays_lt_31 (month : Month) (year : Year) : month.numDays year <= 31 := by
   simp only [Month.numDays, Year.numDaysInGregorianYear]
   by_cases hy : year.isLeapYear
-  case pos => split <;> simp [hy, if_true]
-  case neg => split <;> simp [hy, if_false]
+  case pos =>
+    split
+    simp [hy, if_true]
+    all_goals decide
+  case neg =>
+    split
+    simp [hy, if_false]
+    all_goals decide

@@ -1,11 +1,11 @@
 import Lean.Data.Json
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
 import Mathlib.Tactic.LibrarySearch
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
 
 open Lean
@@ -40,7 +40,7 @@ instance : LinearOrder ScalarDate where
     apply ScalarDate.eq_of_val_eq
     exact le_antisymm h1 h2
   le_total := by simp [ScalarDate.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
 
 instance : Ord ScalarDate := ⟨fun d₁ d₂ => compareOfLessAndEq d₁ d₂⟩
 
@@ -71,5 +71,5 @@ def ScalarDate.addDays : ScalarDate → Nat → ScalarDate
 def ScalarDate.subDays : ScalarDate → Nat → ScalarDate
 | ⟨d⟩, ds => ⟨d - ds⟩
 
-instance : Inhabited ScalarDate where 
+instance : Inhabited ScalarDate where
   default := ScalarDate.mk 0

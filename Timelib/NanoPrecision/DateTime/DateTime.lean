@@ -1,11 +1,11 @@
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
 import Mathlib.Data.String.Defs
 import Mathlib.Data.String.Lemmas
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Timelib.Util
 import Timelib.NanoPrecision.Duration.SignedDuration
 import Timelib.NanoPrecision.Duration.UnsignedDuration
@@ -22,8 +22,8 @@ structure Offset extends TimeZone where
   leapSecondsToRemove : NaiveDateTime → SignedDuration
 
 abbrev Offset.timeZoneOffset (ω : Offset) := ω.toTimeZone.offset
-abbrev Offset.taiToUtc (ω : Offset) (t : NaiveDateTime) := t + (ω.leapSecondsToApply t) 
-abbrev Offset.utcToTai (ω : Offset) (t : NaiveDateTime) := t + (ω.leapSecondsToRemove t) 
+abbrev Offset.taiToUtc (ω : Offset) (t : NaiveDateTime) := t + (ω.leapSecondsToApply t)
+abbrev Offset.utcToTai (ω : Offset) (t : NaiveDateTime) := t + (ω.leapSecondsToRemove t)
 
 /--
 An `Offset` is lawful if the functions returning leap seconds to remove
@@ -70,7 +70,7 @@ instance : LT (DateTime ω) where
 /-- Compares the underlying naive/TAI DateTime -/
 instance : LE (DateTime ω) where
   le := InvImage (instLENaiveDateTime.le) DateTime.naive
-  
+
 @[simp] theorem DateTime.le_def (d₁ d₂ : DateTime ω) : (d₁ <= d₂) = (d₁.naive <= d₂.naive) := rfl
 @[simp] theorem DateTime.lt_def (d₁ d₂ : DateTime ω) : (d₁ < d₂) = (d₁.naive < d₂.naive) := rfl
 
@@ -85,7 +85,7 @@ instance : LinearOrder (DateTime ω) where
     rw [DateTime.le_def] at h1 h2
     exact DateTime.eq_of_val_eq (le_antisymm h1 h2)
   le_total := by simp [DateTime.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
 
 instance : HAdd (DateTime ω) SignedDuration (DateTime ω) where
   hAdd da du := ⟨da.naive + du⟩
@@ -109,7 +109,7 @@ instance : HAdd UnsignedDuration (DateTime ω) (DateTime ω)  where
 
 theorem DateTime.hAdd_def_unsigned (d : DateTime ω) (dur : UnsignedDuration) : d + dur = ⟨d.naive + dur⟩ := rfl
 
-@[defaultInstance]
+@[default_instance]
 instance : HSub (DateTime ω) UnsignedDuration (DateTime ω) where
   hSub d dur := d - (dur : SignedDuration)
 
@@ -126,13 +126,13 @@ theorem DateTime.hAdd_signed_comm (d : DateTime ω) (dur : SignedDuration) : d +
 Incorporate the relevant leap seconds and the timezone offset, creating
 a `NaiveDateTime` that carries the local number of nanos.
 -/
-def DateTime.toLocalNaive (t : DateTime ω) : NaiveDateTime := 
+def DateTime.toLocalNaive (t : DateTime ω) : NaiveDateTime :=
   /- The utc time; the naive time + leap seconds -/
   let utc := t.naive + (ω.leapSecondsToApply t.naive)
   utc + ω.timeZoneOffset
 
 /--
-Convert a `NaiveDateTime` representing a 
+Convert a `NaiveDateTime` representing a
 -/
 --def DateTime.fromTai (t : TaiDateTime) : DateTime ω := ⟨t⟩
 -- vv This definition sort of makes more sense
@@ -141,7 +141,7 @@ def DateTime.fromTai (t : NaiveDateTime) : DateTime ω := ⟨t⟩
 Convert a `NaiveDateTime` that is local (has leap seconds and timezone offset applied)
 and convert it to a `DateTime`.
 -/
-def DateTime.fromLocalNaive (t : NaiveDateTime) : DateTime ω := 
+def DateTime.fromLocalNaive (t : NaiveDateTime) : DateTime ω :=
   /- Remove the timezone offset to get utc -/
   let utc := t - ω.timeZoneOffset
   /- Add whatever the corresponding `leapSecondsToRemove` value is -/
@@ -149,13 +149,13 @@ def DateTime.fromLocalNaive (t : NaiveDateTime) : DateTime ω :=
 
 /--
 -/
-def DateTime.fromLocalYmdsn 
-  (y : Year) 
-  (m : Month) 
-  (d : Nat) 
+def DateTime.fromLocalYmdsn
+  (y : Year)
+  (m : Month)
+  (d : Nat)
   (s : Nat)
   (n : Nat)
-  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : DateTime ω := 
+  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : DateTime ω :=
   DateTime.fromLocalNaive (NaiveDateTime.fromYmdsn y m d s n hd)
 
 /--
@@ -169,10 +169,10 @@ t.setLocalClockTime (3:00:00.0)
 def DateTime.setLocalClockTime (t : DateTime ω) (c : NaiveClockTime) : DateTime ω :=
   DateTime.fromLocalNaive (t.toLocalNaive.setClockTime c)
 
-/-- 
+/--
 Use cases for this are probably rare, so make sure you know what you're getting.
 
-`compareLocalTimes` compares the literal calendar/wall clock datetimes from two time 
+`compareLocalTimes` compares the literal calendar/wall clock datetimes from two time
 stamps, without any regard for what underlying time they represent.
 -/
 def DateTime.compareLocal (t₁ : DateTime ω) (t₂ : DateTime π) : Ordering :=
@@ -195,9 +195,9 @@ def Offset.tai : Offset := {
 }
 
 instance : LawfulOffset Offset.tai where
-  applyRemoveIso := by 
+  applyRemoveIso := by
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
-  removeApplyIso := by 
+  removeApplyIso := by
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
 
 /--
@@ -223,9 +223,9 @@ def Offset.leapSmear (tz : TimeZone) : Offset := {
 }
 
 instance {tz : TimeZone} : LawfulOffset (Offset.leapSmear tz) where
-  applyRemoveIso := by 
+  applyRemoveIso := by
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
-  removeApplyIso := by 
+  removeApplyIso := by
     apply funext; simp [Offset.leapSecondsToApply, Offset.leapSecondsToRemove, NaiveDateTime.hAdd_signed_def]
 
 /-
