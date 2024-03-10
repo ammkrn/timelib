@@ -15,32 +15,32 @@ def SignedDuration.isNonNeg (d : SignedDuration siPow) : Bool := ¬d.isNeg
 def SignedDuration.abs (d : SignedDuration siPow) : SignedDuration siPow := SignedDuration.mk (d.val.natAbs)
 
 instance : Neg (SignedDuration siPow) where
-  neg d := ⟨-d.val⟩ 
+  neg d := ⟨-d.val⟩
 
 theorem SignedDuration.neg_def (d : SignedDuration siPow) : -d = ⟨-d.val⟩ := by rfl
 
 
 instance : Add (SignedDuration siPow) where
-  add a b := ⟨a.val + b.val⟩ 
+  add a b := ⟨a.val + b.val⟩
 
 theorem SignedDuration.add_def (a b : SignedDuration siPow) : a + b = ⟨a.val + b.val⟩ := rfl
 
 instance : Sub (SignedDuration siPow) where
-  sub a b := ⟨a.val - b.val⟩ 
+  sub a b := ⟨a.val - b.val⟩
 
 theorem SignedDuration.sub_def (a b :  SignedDuration siPow) : a - b = ⟨a.val - b.val⟩ := rfl
 
 instance : HMul (SignedDuration siPow) Nat (SignedDuration siPow) where
-  hMul d n := ⟨d.val * n⟩ 
+  hMul d n := ⟨d.val * n⟩
 
 instance : HMod (SignedDuration siPow) Int (SignedDuration siPow) where
-  hMod a n := ⟨a.val % n⟩ 
+  hMod a n := ⟨a.val % n⟩
 
 instance : HDiv (SignedDuration siPow) Nat (SignedDuration siPow) where
-  hDiv a b := ⟨a.val / b⟩ 
+  hDiv a b := ⟨a.val / b⟩
 
 instance : HPow (SignedDuration siPow) Nat (SignedDuration siPow) where
-  hPow a b := ⟨a.val ^ b⟩ 
+  hPow a b := ⟨a.val ^ b⟩
 
 instance : LT (SignedDuration siPow) where
   lt := InvImage Int.lt SignedDuration.val
@@ -69,13 +69,13 @@ instance : LinearOrder (SignedDuration siPow) where
     rw [SignedDuration.le_def] at h2 h1
     exact le_antisymm h1 h2
   le_total := by simp [SignedDuration.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
 
-theorem SignedDuration.monotone {d₁ d₂ : SignedDuration siPow} : d₁.val <= d₂.val -> d₁ <= d₂ := 
+theorem SignedDuration.monotone {d₁ d₂ : SignedDuration siPow} : d₁.val <= d₂.val -> d₁ <= d₂ :=
   fun h => (SignedDuration.le_def) ▸ h
-  
+
 instance (n : Nat) : OfNat (SignedDuration siPow) n where
-  ofNat := ⟨n⟩ 
+  ofNat := ⟨n⟩
 
 @[simp] theorem SignedDuration.zero_def : (0 : SignedDuration siPow).val = (0 : Int) := by rfl
 
@@ -89,7 +89,7 @@ instance : IsAddLeftCancel (SignedDuration siPow) where
     have h2 := SignedDuration.val_eq_of_eq h0
     simp only [SignedDuration.val] at h2
     exact SignedDuration.eq_of_val_eq (@Int.add_left_cancel a.val b.val c.val (h2))
-  
+
 instance : IsAddRightCancel (SignedDuration siPow) where
   add_right_cancel := fun a b c => by
     have h0 := @add_right_cancel Int _ _ a.val b.val c.val
@@ -158,17 +158,17 @@ namespace MilliPrecision
 def SignedDuration := _root_.SignedDuration (-3)
 end MilliPrecision
 
-def SignedDuration.convertLossless 
-  {fine coarse : Int} 
-  (d : SignedDuration coarse) 
-  (h : fine <= coarse := by decide) : 
+def SignedDuration.convertLossless
+  {fine coarse : Int}
+  (d : SignedDuration coarse)
+  (h : fine <= coarse := by decide) :
   SignedDuration fine :=
     match coarse - fine, Int.sub_nonneg_of_le h with
     | Int.ofNat n, _ => ⟨d.val * (10 ^ n)⟩
-    | Int.negSucc n, h_zero_le => 
+    | Int.negSucc n, h_zero_le =>
       False.elim ((not_lt_of_ge h_zero_le) (Int.neg_succ_lt_zero n))
 
-instance {n m : Int} (h : m <= n := by decide) : 
+instance {n m : Int} (h : m <= n := by decide) :
   Coe (SignedDuration n) (SignedDuration m) where
   coe d := SignedDuration.convertLossless d h
 
@@ -179,25 +179,25 @@ These rounding conventions are placeholders for now, we will revisit them.
 /-
 Lossy conversion using the `E` rounding convention; always rounding toward 0
 -/
-def SignedDuration.eConvertLossy 
-  {fine coarse : Int} 
-  (d : SignedDuration fine) 
+def SignedDuration.eConvertLossy
+  {fine coarse : Int}
+  (d : SignedDuration fine)
   (h : fine <= coarse := by decide) : SignedDuration coarse :=
     match coarse - fine, Int.sub_nonneg_of_le h with
     | Int.ofNat n, _ => ⟨d.val / (10 ^ n)⟩
-    | Int.negSucc n, h_zero_le => 
+    | Int.negSucc n, h_zero_le =>
       False.elim ((not_lt_of_ge h_zero_le) (Int.neg_succ_lt_zero n))
 
 /-
 Lossy conversion using the `F` rounding convention
 -/
-def SignedDuration.fConvertLossy 
-  {fine coarse : Int} 
-  (d : SignedDuration fine) 
+def SignedDuration.fConvertLossy
+  {fine coarse : Int}
+  (d : SignedDuration fine)
   (h : fine <= coarse := by decide) : SignedDuration coarse :=
     match coarse - fine, Int.sub_nonneg_of_le h with
     | Int.ofNat n, _ => ⟨d.val.fdiv (10 ^ n)⟩
-    | Int.negSucc n, h_zero_le => 
+    | Int.negSucc n, h_zero_le =>
       False.elim ((not_lt_of_ge h_zero_le) (Int.neg_succ_lt_zero n))
 
 
@@ -221,7 +221,7 @@ def SignedDuration64.fromSignedDuration (d : SignedDuration) : Option SignedDura
 end SecondPrecision
 
 -- 42 SI seconds
-def secs : SignedDuration 0 := ⟨42⟩ 
+def secs : SignedDuration 0 := ⟨42⟩
 
 def megaSecs : SignedDuration 6 := ⟨42⟩
 

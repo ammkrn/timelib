@@ -1,11 +1,11 @@
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
 import Mathlib.Data.String.Defs
 import Mathlib.Data.String.Lemmas
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Timelib.Util
 import Timelib.Date.ScalarDate
 import Timelib.Date.Convert
@@ -26,7 +26,7 @@ instance : Inhabited NaiveDateTime where
   default := ⟨0⟩
 
 /-
-Using `Int.fdiv`, because we have a positive denominator, and we want to round 
+Using `Int.fdiv`, because we have a positive denominator, and we want to round
 down if `dt.nanos` is negative, up if it's nonnegative.
 -/
 def NaiveDateTime.toScalarDate (dt : NaiveDateTime) : ScalarDate := ⟨(dt.nanos.fdiv oneDayNanos) + 1⟩
@@ -34,24 +34,24 @@ def NaiveDateTime.toScalarDate (dt : NaiveDateTime) : ScalarDate := ⟨(dt.nanos
 def NaiveDateTime.dayOfWeek (dt : NaiveDateTime) : Int := dt.toScalarDate.dayOfWeek
 
 /--
-The `DateTime` as of midnight (00:00:00 uninterpreted) on the ymd. 
+The `DateTime` as of midnight (00:00:00 uninterpreted) on the ymd.
 We subtract one to account for the fact that `Date` is one day ahead of the zero-based `NaiveDateTime`.
 -/
-def NaiveDateTime.fromYmd 
+def NaiveDateTime.fromYmd
   (y : Year)
   (m : Month)
   (d : Nat)
-  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : NaiveDateTime := 
-    ⟨oneDayNanos * ((Ymd.mk y m d hd.left hd.right).toScalarDate.day - 1)⟩ 
+  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : NaiveDateTime :=
+    ⟨oneDayNanos * ((Ymd.mk y m d hd.left hd.right).toScalarDate.day - 1)⟩
 
-def NaiveDateTime.fromYmdsn 
-  (y : Year) 
-  (m : Month) 
-  (d : Nat) 
+def NaiveDateTime.fromYmdsn
+  (y : Year)
+  (m : Month)
+  (d : Nat)
   (s : Nat)
   (n : Nat)
-  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : NaiveDateTime := 
-    ⟨(NaiveDateTime.fromYmd y m d hd).nanos + (oneSecondNanos * s) + n⟩ 
+  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : NaiveDateTime :=
+    ⟨(NaiveDateTime.fromYmd y m d hd).nanos + (oneSecondNanos * s) + n⟩
 
 instance : Equiv Int NaiveDateTime where
   toFun := NaiveDateTime.mk
@@ -70,7 +70,7 @@ instance : LT NaiveDateTime where
 
 instance : LE NaiveDateTime where
   le := InvImage Int.le NaiveDateTime.nanos
-  
+
 @[simp] theorem NaiveDateTime.le_def (d₁ d₂ : NaiveDateTime) : (d₁ <= d₂) = (d₁.nanos <= d₂.nanos) := rfl
 @[simp] theorem NaiveDateTime.lt_def (d₁ d₂ : NaiveDateTime) : (d₁ < d₂) = (d₁.nanos < d₂.nanos) := rfl
 
@@ -85,7 +85,8 @@ instance : LinearOrder NaiveDateTime where
     apply NaiveDateTime.eq_of_val_eq
     exact le_antisymm h1 h2
   le_total := by simp [NaiveDateTime.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
+  compare_eq_compareOfLessAndEq := by sorry
 
 def NaiveDateTime.seconds (d : NaiveDateTime) : Int := d.nanos / oneSecondNanos
 
@@ -111,7 +112,7 @@ def NaiveDateTime.dateEq.Equivalence : Equivalence NaiveDateTime.dateEq := {
   trans := fun h h' => Eq.trans h h'
 }
 
-instance instNaiveDateTimeSetoid : Setoid NaiveDateTime := 
+instance instNaiveDateTimeSetoid : Setoid NaiveDateTime :=
   ⟨NaiveDateTime.dateEq, NaiveDateTime.dateEq.Equivalence⟩
 
 instance (d₁ d₂ : NaiveDateTime) : Decidable <| d₁.dateEq d₂ := inferInstance
@@ -171,4 +172,3 @@ Set the clock time of the current day to `tgt`.
 def NaiveDateTime.setClockTime (t : NaiveDateTime) (clockTime : NaiveClockTime) : NaiveDateTime :=
   let days := (t.nanos.fdiv oneDayNanos) * oneDayNanos
   ⟨days + clockTime.nanos.val⟩
-

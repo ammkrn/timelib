@@ -1,11 +1,11 @@
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
 import Mathlib.Data.String.Defs
 import Mathlib.Data.String.Lemmas
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Timelib.Util
 import Timelib.Date.ScalarDate
 import Timelib.Date.Convert
@@ -25,7 +25,7 @@ instance : Inhabited TaiDateTime where
   default := ⟨0⟩
 
 /-
-Using `Int.fdiv`, because we have a positive denominator, and we want to round 
+Using `Int.fdiv`, because we have a positive denominator, and we want to round
 down if `dt.nanos` is negative, up if it's nonnegative.
 -/
 def TaiDateTime.toScalarDate (dt : TaiDateTime) : ScalarDate := ⟨(dt.nanos.fdiv oneDayNanos) + 1⟩
@@ -33,24 +33,24 @@ def TaiDateTime.toScalarDate (dt : TaiDateTime) : ScalarDate := ⟨(dt.nanos.fdi
 def TaiDateTime.dayOfWeek (dt : TaiDateTime) : Int := dt.toScalarDate.dayOfWeek
 
 /--
-The `DateTime` as of midnight (00:00:00 uninterpreted) on the ymd. 
+The `DateTime` as of midnight (00:00:00 uninterpreted) on the ymd.
 We subtract one to account for the fact that `Date` is one day ahead of the zero-based `TaiDateTime`.
 -/
-def TaiDateTime.fromYmd 
+def TaiDateTime.fromYmd
   (y : Year)
   (m : Month)
   (d : Nat)
-  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : TaiDateTime := 
-    ⟨oneDayNanos * ((Ymd.mk y m d hd.left hd.right).toScalarDate.day - 1)⟩ 
+  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : TaiDateTime :=
+    ⟨oneDayNanos * ((Ymd.mk y m d hd.left hd.right).toScalarDate.day - 1)⟩
 
-def TaiDateTime.fromYmdsn 
-  (y : Year) 
-  (m : Month) 
-  (d : Nat) 
+def TaiDateTime.fromYmdsn
+  (y : Year)
+  (m : Month)
+  (d : Nat)
   (s : Nat)
   (n : Nat)
-  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : TaiDateTime := 
-    ⟨(TaiDateTime.fromYmd y m d hd).nanos + (oneSecondNanos * s) + n⟩ 
+  (hd : 1 <= d ∧ d <= m.numDays y := by decide) : TaiDateTime :=
+    ⟨(TaiDateTime.fromYmd y m d hd).nanos + (oneSecondNanos * s) + n⟩
 
 instance : Equiv Int TaiDateTime where
   toFun := TaiDateTime.mk
@@ -69,7 +69,7 @@ instance : LT TaiDateTime where
 
 instance : LE TaiDateTime where
   le := InvImage Int.le TaiDateTime.nanos
-  
+
 @[simp] theorem TaiDateTime.le_def (d₁ d₂ : TaiDateTime) : (d₁ <= d₂) = (d₁.nanos <= d₂.nanos) := rfl
 @[simp] theorem TaiDateTime.lt_def (d₁ d₂ : TaiDateTime) : (d₁ < d₂) = (d₁.nanos < d₂.nanos) := rfl
 
@@ -84,7 +84,7 @@ instance : LinearOrder TaiDateTime where
     apply TaiDateTime.eq_of_val_eq
     exact le_antisymm h1 h2
   le_total := by simp [TaiDateTime.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
 
 def TaiDateTime.seconds (d : TaiDateTime) : Int := d.nanos / oneSecondNanos
 
@@ -110,7 +110,7 @@ def TaiDateTime.dateEq.Equivalence : Equivalence TaiDateTime.dateEq := {
   trans := fun h h' => Eq.trans h h'
 }
 
-instance instTaiDateTimeSetoid : Setoid TaiDateTime := 
+instance instTaiDateTimeSetoid : Setoid TaiDateTime :=
   ⟨TaiDateTime.dateEq, TaiDateTime.dateEq.Equivalence⟩
 
 instance (d₁ d₂ : TaiDateTime) : Decidable <| d₁.dateEq d₂ := inferInstance
@@ -170,4 +170,3 @@ Set the clock time of the current day to `tgt`.
 def TaiDateTime.setClockTime (t : TaiDateTime) (clockTime : NaiveClockTime) : TaiDateTime :=
   let days := (t.nanos.fdiv oneDayNanos) * oneDayNanos
   ⟨days + clockTime.nanos.val⟩
-

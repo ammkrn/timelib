@@ -1,11 +1,11 @@
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
 import Mathlib.Data.String.Defs
 import Mathlib.Data.String.Lemmas
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Timelib.Util
 import Timelib.NanoPrecision.Duration.SignedDuration
 import Timelib.NanoPrecision.Duration.UnsignedDuration
@@ -18,7 +18,7 @@ structure HDateTime where
   dateTime : DateTime offset
 
 def HDateTime.EquivSigma : Equiv HDateTime (Sigma DateTime) := {
-  toFun := fun dt => ⟨dt.offset, dt.dateTime⟩ 
+  toFun := fun dt => ⟨dt.offset, dt.dateTime⟩
   invFun := fun sig => ⟨sig.fst, sig.snd⟩
   left_inv := by simp [Function.LeftInverse]
   right_inv := by simp [Function.RightInverse, Function.LeftInverse]
@@ -39,7 +39,7 @@ def HDateTime.simultaneous.equivalence : Equivalence HDateTime.simultaneous :=  
   trans := fun h h' => Eq.trans h h'
 }
 
-instance instHDateTimeSetoid : Setoid HDateTime := 
+instance instHDateTimeSetoid : Setoid HDateTime :=
   ⟨HDateTime.simultaneous, HDateTime.simultaneous.equivalence⟩
 
 /--
@@ -61,7 +61,7 @@ instance instDecidableLTHDateTime (a b : HDateTime) : Decidable (a < b) := infer
 instance instDecidableLEHDateTime (a b : HDateTime) : Decidable (a <= b) := inferInstanceAs (Decidable (a.dateTime.naive <= b.dateTime.naive))
 
 /--
-HDateTime is only a Preorder since it does not respect antisymmetry. 
+HDateTime is only a Preorder since it does not respect antisymmetry.
 t₁ <= t₂ ∧ t₂ <= t₁ does not imply t₁ = t₂ since they may have different offets/timezones.
 -/
 instance : Preorder HDateTime where
@@ -78,7 +78,7 @@ instance : HAdd SignedDuration HDateTime HDateTime  where
 theorem HDateTime.hAdd_def (d : HDateTime) (dur : SignedDuration) : d + dur = ⟨d.offset, d.dateTime  + dur⟩ := rfl
 
 instance : HSub HDateTime SignedDuration HDateTime where
-  hSub da du := ⟨da.offset, da.dateTime + -du⟩ 
+  hSub da du := ⟨da.offset, da.dateTime + -du⟩
 
 theorem HDateTime.hSub_def (d : HDateTime) (dur : SignedDuration) : d - dur = ⟨d.offset, d.dateTime + -dur⟩ := rfl
 
@@ -91,6 +91,6 @@ instance : HAdd UnsignedDuration HDateTime HDateTime  where
 theorem HDateTime.hAdd_def_unsigned (d : HDateTime) (dur : UnsignedDuration) : d + dur = ⟨d.offset, d.dateTime + dur⟩ := rfl
 
 instance : HSub HDateTime UnsignedDuration HDateTime where
-  hSub da du := ⟨da.offset, da.dateTime - du⟩ 
+  hSub da du := ⟨da.offset, da.dateTime - du⟩
 
 theorem HDateTime.hSub_def_unsigned (d : HDateTime) (dur : UnsignedDuration) : d - dur = ⟨d.offset, d.dateTime - dur⟩ := rfl

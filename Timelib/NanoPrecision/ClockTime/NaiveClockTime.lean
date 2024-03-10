@@ -1,8 +1,8 @@
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Function
 import Mathlib.Data.Fin.Basic
 import Timelib.Util
@@ -23,6 +23,10 @@ instance : Inhabited <| NaiveClockTime := ⟨0, Nat.zero_lt_succ _⟩
 theorem NaiveClockTime.eq_of_val_eq : ∀ {t₁ t₂ : NaiveClockTime} (h : t₁.nanos = t₂.nanos), t₁ = t₂
 | ⟨_, _⟩, ⟨_, _⟩, rfl => rfl
 
+protected def Fin.ofInt'' {n : ℕ} [Nonempty <| Fin n]: Int → Fin n
+  | Int.ofNat a => Fin.ofNat' a Fin.size_positive'
+  | Int.negSucc a => -(Fin.ofNat' a.succ Fin.size_positive')
+
 /-- Addition of a `Duration` to a `NaiveClockTime`; wraps into the next clock cycle. -/
 instance : HAdd NaiveClockTime SignedDuration NaiveClockTime where
   hAdd t d := ⟨t.nanos + Fin.ofInt'' d.val⟩
@@ -35,9 +39,9 @@ theorem NaiveClockTime.hAdd_signed_def (dur : SignedDuration) : t + dur = ⟨t.n
 theorem NaiveClockTime.hAdd_comm (t : NaiveClockTime) (d : SignedDuration) : t + d = d + t := rfl
 theorem NaiveClockTime.hAdd_assoc (t : NaiveClockTime) (d₁ d₂ : SignedDuration) : (t + d₁) + d₂ = t + (d₁ + d₂ ):= sorry
 
-/-- 
-Subtraction of a `Duration` from a `NaiveClockTime`; the implementation follows 
-that of `Fin n`, wrapping into the previous clock cycle on underflow 
+/--
+Subtraction of a `Duration` from a `NaiveClockTime`; the implementation follows
+that of `Fin n`, wrapping into the previous clock cycle on underflow
 -/
 instance : HSub NaiveClockTime SignedDuration NaiveClockTime where
   hSub t d := ⟨t.nanos - Fin.ofInt'' d.val⟩
@@ -53,10 +57,10 @@ def NaiveClockTime.asSeconds : Nat := t.nanos / oneSecondNanos
 def NaiveClockTime.asMinutes : Nat := t.nanos / oneMinuteNanos
 def NaiveClockTime.asHours   : Nat := t.nanos / oneHourNanos
 
-def NaiveClockTime.fromSignedDuration (duration : SignedDuration) : NaiveClockTime := 
-  ⟨(Fin.ofInt'' duration.val) % oneDayNanos⟩
+def NaiveClockTime.fromSignedDuration (duration : SignedDuration) : NaiveClockTime :=
+  ⟨(@Fin.ofInt'' oneDayNanos _ duration.val) % oneDayNanos⟩
 
-def NaiveClockTime.fromHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : NaiveClockTime := 
+def NaiveClockTime.fromHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : NaiveClockTime :=
   NaiveClockTime.fromSignedDuration ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
 
 instance : LT NaiveClockTime where
@@ -85,10 +89,11 @@ instance : LinearOrder NaiveClockTime where
     apply NaiveClockTime.eq_of_val_eq
     exact le_antisymm h1 h2
   le_total := by simp [NaiveClockTime.le_def, le_total]
-  decidable_le := inferInstance
+  decidableLE := inferInstance
+  compare_eq_compareOfLessAndEq := by sorry
 
 instance : ToString NaiveClockTime where
-  toString t := 
+  toString t :=
     let h := String.leftpad 2 '0' (ToString.toString $ t.hourComponent)
     let m := String.leftpad 2 '0' (ToString.toString $ t.minuteComponent)
     let s := String.leftpad 2 '0' (ToString.toString $ t.secondComponent)

@@ -1,11 +1,11 @@
 import Mathlib.Tactic.Basic
 import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Algebra.Order
+import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Data.String.Defs
 import Mathlib.Data.String.Lemmas
-import Mathlib.Data.Equiv.Basic
+import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Function
 import Timelib.Util
 import Timelib.NanoPrecision.TimeZone.Basic
@@ -18,7 +18,7 @@ structure HClockTime where
   clockTime : ClockTime timeZone
 
 def HClockTime.EquivSigma : Equiv HClockTime (Sigma ClockTime) := {
-  toFun := fun oct => ⟨oct.timeZone, oct.clockTime⟩ 
+  toFun := fun oct => ⟨oct.timeZone, oct.clockTime⟩
   invFun := fun sig => ⟨sig.fst, sig.snd⟩
   left_inv := by simp [Function.LeftInverse]
   right_inv := by simp [Function.RightInverse, Function.LeftInverse]
@@ -47,17 +47,17 @@ def HClockTime.secondComponent : Nat := t.clockTime.secondComponent
 def HClockTime.minuteComponent : Nat := t.clockTime.minuteComponent
 def HClockTime.hourComponent : Nat := t.clockTime.hourComponent
 
-/-- 
-Addition of a `Duration` to a `ClockTime`; wraps into the next clock cycle. 
+/--
+Addition of a `Duration` to a `ClockTime`; wraps into the next clock cycle.
 -/
 instance : HAdd HClockTime SignedDuration HClockTime where
   hAdd t d := { t with clockTime := t.clockTime + d }
 
 theorem HClockTime.hAdd_signed_def (dur : SignedDuration) : t + dur = { t with clockTime := t.clockTime + dur } := rfl
 
-/-- 
-Subtraction of a `SignedDuration` from a `ClockTime`; the implementation follows 
-that of `Fin oneDayNanos`, wrapping into the previous clock cycle on underflow 
+/--
+Subtraction of a `SignedDuration` from a `ClockTime`; the implementation follows
+that of `Fin oneDayNanos`, wrapping into the previous clock cycle on underflow
 -/
 instance : HSub HClockTime SignedDuration HClockTime where
   hSub t d := { t with clockTime := t.clockTime - d }
@@ -93,7 +93,7 @@ instance instDecidableLTHClockTime (a b : HClockTime) : Decidable (a < b) := inf
 instance instDecidableLEHClockTime (a b : HClockTime) : Decidable (a <= b) := inferInstanceAs (Decidable (a.clockTime.naive <= b.clockTime.naive))
 
 /--
-HClockTime is only a Preorder since it does not respect antisymmetry. 
+HClockTime is only a Preorder since it does not respect antisymmetry.
 t₁ <= t₂ ∧ t₂ <= t₁ does not imply t₁ = t₂ since they may have different timezones.
 -/
 instance : Preorder HClockTime where
