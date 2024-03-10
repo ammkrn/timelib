@@ -41,7 +41,8 @@ theorem Nat.lt_of_succ_le_sub' {m n l : Nat} (h0 : 0 < l) (h : l <= m - n) : n <
   rw [<- h0] at h
   exact Nat.lt_of_succ_le_sub h
 
-theorem Int.of_nat_nonneg (n : ℕ) : 0 ≤ Int.ofNat n := sorry
+theorem Int.of_nat_nonneg (n : ℕ) : 0 ≤ Int.ofNat n := by
+  simp
 
 -- theorem Int.mod_nonneg (a : ℤ) {b : ℤ} : b ≠ 0 → 0 ≤ a % b := sorry
 
@@ -56,9 +57,18 @@ theorem Int.of_nat_nonneg (n : ℕ) : 0 ≤ Int.ofNat n := sorry
 --@[simp]
 --theorem Int.mul_div_cancel (a : ℤ) {b : ℤ} (H : b ≠ 0) : a * b / b = a := sorry
 
-theorem int.div_add_mod' (m k : ℤ) : m / k * k + m % k = m := sorry
+theorem int.div_add_mod' (m k : ℤ) : m / k * k + m % k = m :=
+  sorry
 
-theorem Int.div_eq_zero_of_lt' {a b : ℤ} (H1 : 0 ≤ a) (H2 : a < b) : a / b = 0 := sorry
+theorem Int.div_eq_zero_of_lt' {a b : ℤ} (H1 : 0 ≤ a) (H2 : a < b) : a / b = 0
+:= by
+  let div_eq : Int.div a b = a / b := by
+    apply Int.div_eq_ediv
+    · assumption
+    · apply Int.le_of_lt
+      apply Int.lt_of_le_of_lt H1 H2
+  rw [←div_eq]
+  apply Int.div_eq_zero_of_lt H1 H2
 
 --@[simp]
 --theorem Int.zero_div : ∀ (d : Int), 0 / d = 0 := sorry
@@ -66,8 +76,8 @@ theorem Int.div_eq_zero_of_lt' {a b : ℤ} (H1 : 0 ≤ a) (H2 : a < b) : a / b =
 theorem Int.fmod_nonneg_of_pos_mod : ∀ (x : Int) {m : Int}, (h : 0 < m) → 0 <= x.fmod m
 | _, Int.negSucc _, hm => by cases hm; done
 | _, Int.ofNat 0, hm => by cases hm; done
-| Int.ofNat 0, Int.ofNat (m+1), hm => by simp [Int.fmod]
-| Int.ofNat (x+1), Int.ofNat (m+1), hm => by
+| Int.ofNat 0, Int.ofNat (_m+1), _hm => by simp [Int.fmod]
+| Int.ofNat (x+1), Int.ofNat (m+1), _hm => by
   simp [Int.fmod, -Int.ofNat_eq_cast]
   apply Int.ofNat_zero_le
 | Int.negSucc xNat, Int.ofNat (mNat+1), hm => by
@@ -75,18 +85,18 @@ theorem Int.fmod_nonneg_of_pos_mod : ∀ (x : Int) {m : Int}, (h : 0 < m) → 0 
 
 @[simp]
 theorem Int.fdiv_pos_eq_div : ∀ {a b : Int}, 0 <= a → 0 <= b → Int.fdiv a b = a / b
-| .ofNat 0, .ofNat b_n, ha, hb => by simp [Int.fdiv]
-| .negSucc _, _, ha, hb => by cases ha
-| _, .negSucc _, ha, hb => by cases hb
-| .ofNat (a_n + 1), .ofNat b_n, ha, hb => by
+| .ofNat 0, .ofNat b_n, _ha, _hb => by simp [Int.fdiv]
+| .negSucc _, _, ha, _hb => by cases ha
+| _, .negSucc _, _ha, hb => by cases hb
+| .ofNat (a_n + 1), .ofNat b_n, _ha, _hb => by
   simp [Int.fdiv, -Int.ofNat_eq_cast]
 
 @[simp]
 theorem Int.fmod_pos_eq_mod : ∀ {a b : Int}, 0 <= a → 0 <= b → a.fmod b = a % b
-| .ofNat 0, .ofNat b_n, ha, hb => by simp [Int.fmod]
-| .negSucc _, _, ha, hb => by cases ha
-| _, .negSucc _, ha, hb => by cases hb
-| .ofNat (a_n + 1), .ofNat b_n, ha, hb => by
+| .ofNat 0, .ofNat b_n, _ha, _hb => by simp [Int.fmod]
+| .negSucc _, _, ha, _hb => by cases ha
+| _, .negSucc _, _ha, hb => by cases hb
+| .ofNat (a_n + 1), .ofNat b_n, _ha, _hb => by
   simp [Int.fmod, -Int.ofNat_eq_cast]
 
 @[simp]
@@ -106,7 +116,7 @@ theorem Int.fdiv_mod_eq_mod_div (a : Int) {m d : Int} (h : 0 < m) (h' : 0 < d) :
 
 
 @[simp]
-theorem Int.fmodmod (a : Int) {m₀ m₁ m₂ : Int} (h0 : 0 < m₀) (h1 : 0 < m₁) (h2 : 0 < m₂) :
+theorem Int.fmodmod (a : Int) {m₀ m₁ m₂ : Int} (_h0 : 0 < m₀) (h1 : 0 < m₁) (h2 : 0 < m₂) :
   ((a.fmod m₀) % m₁).fmod m₂ = (a.fmod m₀) % m₁ % m₂ :=
   @Int.fmod_pos_eq_mod (a.fmod m₀ % m₁) m₂ (emod_nonneg _ (ne_of_gt h1)) (le_of_lt h2)
 
@@ -127,7 +137,7 @@ theorem fdiv_neg_eq
 --theorem Int.div_add_mod (a b : ℤ) : b * (a / b) + a % b = a := sorry
 
 theorem Int.fmod_lt : ∀ (x : Int) {m : Int}, (h : 0 < m) → x.fmod m < m
-| Int.ofNat 0, Int.ofNat mn, hm => hm
+| Int.ofNat 0, Int.ofNat _mn, hm => hm
 | Int.ofNat (xn+1), Int.ofNat mn, hm => by
   simp [Int.fmod]
   exact emod_lt_of_pos (↑xn + 1) hm
@@ -158,10 +168,13 @@ theorem ne_of_nat_of_lt_zero {a : Int} {b : Nat} (h : a < 0) : ¬(a = Int.ofNat 
   | ofNat _ => cases h
   | negSucc _ => cases h'
 
-theorem Int.add_mul_div_left (a : ℤ) {b : ℤ} (c : ℤ) (H : b ≠ 0) : (a + b * c) / b = a / b + c := sorry
+theorem Int.add_mul_div_left (a : ℤ) {b : ℤ} (c : ℤ) (H : b ≠ 0) :
+  (a + b * c) / b = a / b + c
+:= Int.add_mul_ediv_left a c H
 
 theorem Int.add_mul_div_right (a b : Int) {c : Int} (H : c ≠ 0) :
-  (a + b * c) / c = a / c + b := sorry
+  (a + b * c) / c = a / c + b
+:= Int.add_mul_ediv_right a b H
 
 theorem div_eq_zero_of_lt : ∀ {a b : Int}, 0 <= a → 0 <= b → a < b → a / b = 0
 | .ofNat a, .ofNat b, ha, hb, hlt => by
@@ -169,9 +182,9 @@ theorem div_eq_zero_of_lt : ∀ {a b : Int}, 0 <= a → 0 <= b → a < b → a /
   have hy := Nat.div_eq_of_lt hx
   simp [HDiv.hDiv, Div.div, Int.div] at *
   exact Int.natAbs_eq_zero.mp hy
-| .ofNat a, .negSucc b, ha, hb, hlt => by cases hb
-| .negSucc a, .ofNat b, ha, hb, hlt => by cases ha
-| .negSucc _, .negSucc _, ha, hb, hlt => by cases ha
+| .ofNat a, .negSucc b, _ha, hb, _hlt => by cases hb
+| .negSucc a, .ofNat b, ha, _hb, _hlt => by cases ha
+| .negSucc _, .negSucc _, ha, _hb, _hlt => by cases ha
 
 theorem neither_lem (a b c : Int) (h0 : 0 <= (a * b)) (h1 : 0 <= c) (hb : 0 < b) (h : c < b) : ((a * b) + c).fdiv b = a := by
   have hsum : 0 <= (a * b + c) := Int.add_nonneg h0 h1
@@ -181,7 +194,9 @@ theorem neither_lem (a b c : Int) (h0 : 0 <= (a * b)) (h1 : 0 <= c) (hb : 0 < b)
     rwa [add_comm, div_eq_zero_of_lt h1 (le_of_lt hb) h, zero_add] at hdiv'
   exact hdiv
 
-theorem Nat.div_le_div_right' {n m : Nat} (h : n ≤ m) {k : Nat} : n / k ≤ m / k := sorry
+theorem Nat.div_le_div_right' {n m : Nat} (h : n ≤ m) {k : Nat} :
+  n / k ≤ m / k
+:= Nat.div_le_div_right h
 
 theorem Int.not_of_nat_le_neg_succ (a b : Nat) : ¬(Int.ofNat a <= Int.negSucc b) := fun h => by
   exact absurd (lt_of_le_of_lt h (Int.negSucc_lt_zero b)) (not_lt_of_ge (Int.ofNat_zero_le a))
@@ -303,7 +318,7 @@ theorem Int.div_mod_unique {a b r q : ℤ} (h : 0 < b) :
   a / b = q ∧ a % b = r ↔ r + b * q = a ∧ 0 ≤ r ∧ r < b :=
     sorry
 
-theorem Int.div_pigeonhole {x lower c : Int} (hx : 0 <= x) (hlower : 0 < lower) (hc : 0 < c) : c * lower < x → x < c * (lower + 1) → (x / c) = lower := fun h1 h2 => by
+theorem Int.div_pigeonhole {x lower c : Int} (_hx : 0 <= x) (_hlower : 0 < lower) (hc : 0 < c) : c * lower < x → x < c * (lower + 1) → (x / c) = lower := fun h1 h2 => by
   rw [mul_comm] at h2
   have div_lt_plus_one := Int.div_lt_of_lt_mul hc h2
   apply by_contradiction
