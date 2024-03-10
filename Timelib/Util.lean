@@ -62,13 +62,15 @@ theorem int.div_add_mod' (m k : ℤ) : m / k * k + m % k = m :=
 
 theorem Int.div_eq_zero_of_lt' {a b : ℤ} (H1 : 0 ≤ a) (H2 : a < b) : a / b = 0
 := by
-  let div_eq : Int.div a b = a / b := by
+  rw [←div_eq_ediv]
+  apply Int.div_eq_zero_of_lt H1 H2
+where
+  div_eq_ediv : Int.div a b = a / b := by
+    simp [HDiv.hDiv, Div.div]
     apply Int.div_eq_ediv
     · assumption
     · apply Int.le_of_lt
       apply Int.lt_of_le_of_lt H1 H2
-  rw [←div_eq]
-  apply Int.div_eq_zero_of_lt H1 H2
 
 --@[simp]
 --theorem Int.zero_div : ∀ (d : Int), 0 / d = 0 := sorry
