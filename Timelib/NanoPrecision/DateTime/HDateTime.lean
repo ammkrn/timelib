@@ -33,11 +33,12 @@ variable (t : HDateTime)
 def HDateTime.simultaneous : HDateTime → HDateTime → Prop
 | ⟨_, ⟨naive_dt₁⟩⟩, ⟨_, ⟨naive_dt₂⟩⟩ => naive_dt₁ = naive_dt₂
 
-def HDateTime.simultaneous.equivalence : Equivalence HDateTime.simultaneous :=  {
-  refl := fun d => rfl
-  symm := fun h => h.symm
-  trans := fun h h' => Eq.trans h h'
-}
+def HDateTime.simultaneous.equivalence :
+  Equivalence HDateTime.simultaneous
+where
+  refl _d := rfl
+  symm h := h.symm
+  trans h h' := Eq.trans h h'
 
 instance instHDateTimeSetoid : Setoid HDateTime :=
   ⟨HDateTime.simultaneous, HDateTime.simultaneous.equivalence⟩
@@ -46,13 +47,13 @@ instance instHDateTimeSetoid : Setoid HDateTime :=
 LT compares the underlying naive DateTime.
 -/
 instance : LT HDateTime where
-  lt := InvImage instLTNaiveDateTime.lt (fun t => t.dateTime.naive)
+  lt := InvImage NaiveDateTime.instLT.lt (fun t => t.dateTime.naive)
 
 /--
 LE compares the underlying naive DateTime
 -/
 instance : LE HDateTime where
-  le := InvImage instLENaiveDateTime.le (fun t => t.dateTime.naive)
+  le := InvImage NaiveDateTime.instLE.le (fun t => t.dateTime.naive)
 
 @[simp] theorem HDateTime.le_def (d₁ d₂ : HDateTime) : (d₁ <= d₂) = (d₁.dateTime.naive <= d₂.dateTime.naive) := rfl
 @[simp] theorem HDateTime.lt_def (d₁ d₂ : HDateTime) : (d₁ < d₂) = (d₁.dateTime.naive < d₂.dateTime.naive) := rfl
@@ -65,9 +66,9 @@ HDateTime is only a Preorder since it does not respect antisymmetry.
 t₁ <= t₂ ∧ t₂ <= t₁ does not imply t₁ = t₂ since they may have different offets/timezones.
 -/
 instance : Preorder HDateTime where
-  le_refl (a) := le_refl a.dateTime.naive
-  le_trans (a b c) := Int.le_trans
-  lt_iff_le_not_le (a b) := Int.lt_iff_le_not_le
+  le_refl a := le_refl a.dateTime.naive
+  le_trans _a _b _c := Int.le_trans
+  lt_iff_le_not_le _a _b := Int.lt_iff_le_not_le
 
 instance : HAdd HDateTime SignedDuration HDateTime where
   hAdd da du := ⟨da.offset, da.dateTime + du⟩

@@ -65,11 +65,11 @@ theorem DateTime.val_ne_of_ne : ∀ {d₁ d₂ : DateTime ω} (_ : d₁ ≠ d₂
 
 /-- Compares the underlying naive/TAI DateTime -/
 instance : LT (DateTime ω) where
-  lt := InvImage (instLTNaiveDateTime.lt) DateTime.naive
+  lt := InvImage (NaiveDateTime.instLT.lt) DateTime.naive
 
 /-- Compares the underlying naive/TAI DateTime -/
 instance : LE (DateTime ω) where
-  le := InvImage (instLENaiveDateTime.le) DateTime.naive
+  le := InvImage (NaiveDateTime.instLE.le) DateTime.naive
 
 @[simp] theorem DateTime.le_def (d₁ d₂ : DateTime ω) : (d₁ <= d₂) = (d₁.naive <= d₂.naive) := rfl
 @[simp] theorem DateTime.lt_def (d₁ d₂ : DateTime ω) : (d₁ < d₂) = (d₁.naive < d₂.naive) := rfl
