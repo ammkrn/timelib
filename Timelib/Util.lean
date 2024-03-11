@@ -1,6 +1,7 @@
 import Mathlib.Data.Int.Defs
 import Mathlib.Data.Int.Lemmas
 import Mathlib.Data.Nat.Basic
+import Mathlib.Data.Fin.Basic
 import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
@@ -9,6 +10,18 @@ import Mathlib.Init.Data.Int.Order
 import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
 import Lean.Data.Json
+
+
+
+/-- #TODO
+- better name
+- documentation
+- possibly move to some helper namespace, *e.g.* `Util`
+-/
+protected def Fin.ofInt'' {n : ℕ} [Nonempty <| Fin n] : Int → Fin n
+| Int.ofNat a => Fin.ofNat' a Fin.size_positive'
+| Int.negSucc a => -(Fin.ofNat' a.succ Fin.size_positive')
+
 
 theorem h100 : ((146096 : Int) / 36524) * 100 = 400 := by decide
 theorem h4 : ((146096 : Int) % 36524) / 1461 * 4 = 0 := by decide

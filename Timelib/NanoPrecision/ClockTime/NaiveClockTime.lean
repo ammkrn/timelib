@@ -10,94 +10,174 @@ import Timelib.NanoPrecision.Duration.SignedDuration
 import Timelib.NanoPrecision.Duration.UnsignedDuration
 import Lean.Data.Json
 
+
+
 structure NaiveClockTime where
   nanos : Fin oneDayNanos
-deriving DecidableEq, Ord, Hashable, Repr, Lean.ToJson, Lean.FromJson
+deriving DecidableEq, Hashable, Repr, Lean.ToJson, Lean.FromJson
 
-section NaiveClockTimeStuff
 
-variable (t : NaiveClockTime)
 
-instance : Inhabited <| NaiveClockTime := ⟨0, Nat.zero_lt_succ _⟩
+namespace NaiveClockTime
 
-theorem NaiveClockTime.eq_of_val_eq : ∀ {t₁ t₂ : NaiveClockTime} (h : t₁.nanos = t₂.nanos), t₁ = t₂
+
+
+instance instOrd : Ord NaiveClockTime where
+  compare l r := compare l.nanos r.nanos
+
+instance instInhabited : Inhabited NaiveClockTime :=
+  ⟨0, Nat.zero_lt_succ _⟩
+
+
+
+theorem eq_of_val_eq : ∀ {t₁ t₂ : NaiveClockTime},
+  t₁.nanos = t₂.nanos → t₁ = t₂
 | ⟨_, _⟩, ⟨_, _⟩, rfl => rfl
 
-protected def Fin.ofInt'' {n : ℕ} [Nonempty <| Fin n]: Int → Fin n
-  | Int.ofNat a => Fin.ofNat' a Fin.size_positive'
-  | Int.negSucc a => -(Fin.ofNat' a.succ Fin.size_positive')
+theorem eq_of_val_eq' : ∀ {t₁ t₂ : NaiveClockTime},
+  t₁.nanos.val = t₂.nanos.val → t₁ = t₂
+| ⟨_, _⟩, ⟨_, _⟩, rfl => rfl
 
-/-- Addition of a `Duration` to a `NaiveClockTime`; wraps into the next clock cycle. -/
-instance : HAdd NaiveClockTime SignedDuration NaiveClockTime where
+theorem val_eq_of_eq : ∀ {t₁ t₂ : NaiveClockTime},
+  t₁ = t₂ → t₁.nanos = t₂.nanos
+| ⟨_, _⟩, ⟨_, _⟩, rfl => rfl
+
+theorem val_eq_of_eq' : ∀ {t₁ t₂ : NaiveClockTime},
+  t₁ = t₂ → t₁.nanos.val = t₂.nanos.val
+| ⟨_, _⟩, ⟨_, _⟩, rfl => rfl
+
+theorem eq_def : ∀ {t₁ t₂ : NaiveClockTime},
+  t₁ = t₂ ↔ t₁.nanos = t₂.nanos
+:= ⟨val_eq_of_eq, eq_of_val_eq⟩
+
+theorem eq_def' : ∀ {t₁ t₂ : NaiveClockTime},
+  t₁ = t₂ ↔ t₁.nanos.val = t₂.nanos.val
+:= ⟨val_eq_of_eq', eq_of_val_eq'⟩
+
+
+
+/-- Addition of a `Duration` to a `NaiveClockTime`; wraps into the next clock
+cycle. -/
+instance instHAddSelfSignedDurationSelf :
+  HAdd NaiveClockTime SignedDuration NaiveClockTime
+where
   hAdd t d := ⟨t.nanos + Fin.ofInt'' d.val⟩
 
-instance : HAdd SignedDuration NaiveClockTime NaiveClockTime where
+instance instHAddSignedDurationSelfSelf :
+  HAdd SignedDuration NaiveClockTime NaiveClockTime
+where
   hAdd t d := d + t
 
-theorem NaiveClockTime.hAdd_signed_def (dur : SignedDuration) : t + dur = ⟨t.nanos + Fin.ofInt'' dur.val⟩ := rfl
+section hAdd_lemmas
+  variable
+    (t : NaiveClockTime)
+    (d d₁ d₂ : SignedDuration)
 
-theorem NaiveClockTime.hAdd_comm (t : NaiveClockTime) (d : SignedDuration) : t + d = d + t := rfl
-theorem NaiveClockTime.hAdd_assoc (t : NaiveClockTime) (d₁ d₂ : SignedDuration) : (t + d₁) + d₂ = t + (d₁ + d₂ ):= sorry
+  theorem hAdd_signed_def : t + d = ⟨t.nanos + Fin.ofInt'' d.val⟩ :=
+    rfl
+  theorem hAdd_comm : t + d = d + t :=
+    rfl
+  theorem hAdd_assoc : (t + d₁) + d₂ = t + (d₁ + d₂ ) :=
+    sorry
+end hAdd_lemmas
 
-/--
-Subtraction of a `Duration` from a `NaiveClockTime`; the implementation follows
-that of `Fin n`, wrapping into the previous clock cycle on underflow
+
+
+/-- Subtraction of a `Duration` from a `NaiveClockTime`; the implementation
+follows that of `Fin n`, wrapping into the previous clock cycle on underflow.
 -/
-instance : HSub NaiveClockTime SignedDuration NaiveClockTime where
+instance instHSubSelfSignedDurationSelf :
+  HSub NaiveClockTime SignedDuration NaiveClockTime
+where
   hSub t d := ⟨t.nanos - Fin.ofInt'' d.val⟩
 
-theorem NaiveClockTime.hSub_signed_def (dur : SignedDuration) : t - dur = ⟨t.nanos - Fin.ofInt'' dur.val⟩ := rfl
+theorem hSub_signed_def (t : NaiveClockTime) (d : SignedDuration) :
+  t - d = ⟨t.nanos - Fin.ofInt'' d.val⟩
+:= rfl
 
-def NaiveClockTime.nanoComponent (t : NaiveClockTime) : Nat := t.nanos.val % oneSecondNanos
-def NaiveClockTime.secondComponent (t : NaiveClockTime) : Nat := (t.nanos.val % oneMinuteNanos) / oneSecondNanos
-def NaiveClockTime.minuteComponent (t : NaiveClockTime) : Nat := (t.nanos.val % oneHourNanos) / oneMinuteNanos
-def NaiveClockTime.hourComponent (t : NaiveClockTime) : Nat := t.nanos.val / oneHourNanos
-def NaiveClockTime.asNanos   : Nat := t.nanos
-def NaiveClockTime.asSeconds : Nat := t.nanos / oneSecondNanos
-def NaiveClockTime.asMinutes : Nat := t.nanos / oneMinuteNanos
-def NaiveClockTime.asHours   : Nat := t.nanos / oneHourNanos
 
-def NaiveClockTime.fromSignedDuration (duration : SignedDuration) : NaiveClockTime :=
+
+section
+  variable (t : NaiveClockTime)
+
+  def nanoComponent : Nat :=
+    t.nanos.val % oneSecondNanos
+  def secondComponent : Nat :=
+    (t.nanos.val % oneMinuteNanos) / oneSecondNanos
+  def minuteComponent : Nat :=
+    (t.nanos.val % oneHourNanos) / oneMinuteNanos
+  def hourComponent : Nat :=
+    t.nanos.val / oneHourNanos
+
+  def asNanos : Nat :=
+    t.nanos
+  def asSeconds : Nat :=
+    t.nanos / oneSecondNanos
+  def asMinutes : Nat :=
+    t.nanos / oneMinuteNanos
+  def asHours : Nat :=
+    t.nanos / oneHourNanos
+end
+
+def fromSignedDuration (duration : SignedDuration) : NaiveClockTime :=
   ⟨(@Fin.ofInt'' oneDayNanos _ duration.val) % oneDayNanos⟩
 
-def NaiveClockTime.fromHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : NaiveClockTime :=
-  NaiveClockTime.fromSignedDuration ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
+def fromHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : NaiveClockTime :=
+  ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
+  |> NaiveClockTime.fromSignedDuration
 
-instance : LT NaiveClockTime where
-  lt := InvImage instLTFin.lt NaiveClockTime.nanos
 
-instance : LE NaiveClockTime where
-  le := InvImage instLEFin.le NaiveClockTime.nanos
 
-@[simp] theorem NaiveClockTime.le_def (d₁ d₂ : NaiveClockTime) : (d₁ <= d₂) = (d₁.nanos <= d₂.nanos) := rfl
-@[simp] theorem NaiveClockTime.lt_def (d₁ d₂ : NaiveClockTime) : (d₁ < d₂) = (d₁.nanos < d₂.nanos) := rfl
 
-instance instDecidableLENaiveClockTime (a b : NaiveClockTime) : Decidable (a <= b) := inferInstanceAs (Decidable (a.nanos <= b.nanos))
-instance instDecidableLTNaiveClockTime (a b : NaiveClockTime) : Decidable (a < b) := inferInstanceAs (Decidable (a.nanos < b.nanos))
+instance instLT : LT NaiveClockTime where
+  lt l r := l.nanos < r.nanos
 
-instance : Equiv (Fin oneDayNanos) NaiveClockTime where
-  toFun := NaiveClockTime.mk
-  invFun := NaiveClockTime.nanos
+instance instLE : LE NaiveClockTime where
+  le l r := l.nanos ≤ r.nanos
+
+@[simp] theorem le_def (d₁ d₂ : NaiveClockTime) :
+  (d₁ <= d₂) = (d₁.nanos <= d₂.nanos)
+:= rfl
+
+@[simp] theorem lt_def (d₁ d₂ : NaiveClockTime) :
+  (d₁ < d₂) = (d₁.nanos < d₂.nanos)
+:= rfl
+
+section dec_le_lt
+  variable (a b : NaiveClockTime)
+
+  instance instDecidableLE : Decidable (a <= b) :=
+    inferInstanceAs (Decidable (a.nanos <= b.nanos))
+
+  instance instDecidableLT : Decidable (a < b) :=
+    inferInstanceAs (Decidable (a.nanos < b.nanos))
+end dec_le_lt
+
+
+
+instance instEquivFinSelf : Equiv (Fin oneDayNanos) NaiveClockTime where
+  toFun := mk
+  invFun := nanos
   left_inv := by simp [Function.LeftInverse]
   right_inv := by simp [Function.RightInverse, Function.LeftInverse]
 
-instance : LinearOrder NaiveClockTime where
+instance instLinearOrder : LinearOrder NaiveClockTime where
   le_refl (a) := le_refl a.nanos
   le_trans (a b c) := Nat.le_trans
   lt_iff_le_not_le (a b) := Nat.lt_iff_le_not_le
   le_antisymm (a b h1 h2) := by
-    apply NaiveClockTime.eq_of_val_eq
+    apply eq_of_val_eq
     exact le_antisymm h1 h2
-  le_total := by simp [NaiveClockTime.le_def, le_total]
+  le_total := by simp [le_total]
   decidableLE := inferInstance
-  compare_eq_compareOfLessAndEq := by sorry
+  compare_eq_compareOfLessAndEq := by
+    simp [compare, compareOfLessAndEq, eq_def']
 
-instance : ToString NaiveClockTime where
+
+instance instToString : ToString NaiveClockTime where
   toString t :=
-    let h := String.leftpad 2 '0' (ToString.toString $ t.hourComponent)
-    let m := String.leftpad 2 '0' (ToString.toString $ t.minuteComponent)
-    let s := String.leftpad 2 '0' (ToString.toString $ t.secondComponent)
-    let n := String.leftpad 9 '0' (ToString.toString $ t.nanoComponent)
-  s!"{h}:{m}:{s}.{n}"
-
-end NaiveClockTimeStuff
+    let h := t.hourComponent   |> toString |> String.leftpad 2 '0'
+    let m := t.minuteComponent |> toString |> String.leftpad 2 '0'
+    let s := t.secondComponent |> toString |> String.leftpad 2 '0'
+    let n := t.nanoComponent   |> toString |> String.leftpad 9 '0'
+    s!"{h}:{m}:{s}.{n}"

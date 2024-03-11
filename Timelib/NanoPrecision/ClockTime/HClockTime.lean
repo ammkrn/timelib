@@ -78,13 +78,13 @@ theorem HClockTime.unapply_apply : t - t.timeZone.offset + t.timeZone.offset = t
 LT compares the underlying naive/TAI time.
 -/
 instance : LT HClockTime where
-  lt := InvImage instLTNaiveClockTime.lt (fun t => t.clockTime.naive)
+  lt := InvImage NaiveClockTime.instLT.lt (fun t => t.clockTime.naive)
 
 /--
 LE compares the underlying naive/TAI time.
 -/
 instance : LE HClockTime where
-  le := InvImage instLENaiveClockTime.le (fun t => t.clockTime.naive)
+  le := InvImage NaiveClockTime.instLE.le (fun t => t.clockTime.naive)
 
 theorem HClockTime.le_def (d₁ d₂ : HClockTime) : (d₁ <= d₂) = (d₁.clockTime.naive <= d₂.clockTime.naive) := rfl
 theorem HClockTime.lt_def (d₁ d₂ : HClockTime) : (d₁ < d₂) = (d₁.clockTime.naive < d₂.clockTime.naive) := rfl
@@ -97,8 +97,8 @@ HClockTime is only a Preorder since it does not respect antisymmetry.
 t₁ <= t₂ ∧ t₂ <= t₁ does not imply t₁ = t₂ since they may have different timezones.
 -/
 instance : Preorder HClockTime where
-  le_refl (a) := le_refl a.clockTime.naive
-  le_trans (a b c) := Nat.le_trans
-  lt_iff_le_not_le (a b) := Nat.lt_iff_le_not_le
+  le_refl a := le_refl a.clockTime.naive
+  le_trans _a _b _c := Nat.le_trans
+  lt_iff_le_not_le _a _b := Nat.lt_iff_le_not_le
 
 end HClockTimeStuff
