@@ -28,72 +28,91 @@ abbrev oneWeekNanos : Nat := 604800000000000
 /-- The number of nanoseconds in one 365-day year -/
 abbrev oneYearNanos : Nat := 31536000000000000
 
+
+
 structure SignedDuration where
   val : Int
 deriving DecidableEq, Ord, Repr
 
-def SignedDuration.isNeg (d : SignedDuration) : Bool := d.val < 0
-def SignedDuration.isNonNeg (d : SignedDuration) : Bool := ¬d.isNeg
-def SignedDuration.abs (d : SignedDuration) : SignedDuration := SignedDuration.mk (d.val.natAbs)
 
-instance : Neg SignedDuration where
+
+namespace SignedDuration
+
+
+
+def isNeg (d : SignedDuration) : Bool :=
+  d.val < 0
+def isNonNeg (d : SignedDuration) : Bool :=
+  ¬d.isNeg
+def abs (d : SignedDuration) : SignedDuration :=
+  mk (d.val.natAbs)
+
+instance instNeg : Neg SignedDuration where
   neg d := ⟨-d.val⟩
 
-theorem SignedDuration.neg_def (d : SignedDuration) : -d = ⟨-d.val⟩ := by rfl
+theorem neg_def (d : SignedDuration) : -d = ⟨-d.val⟩ := by rfl
 
-instance : Add SignedDuration where
+instance instAdd : Add SignedDuration where
   add a b := ⟨a.val + b.val⟩
 
-theorem SignedDuration.add_def (a b : SignedDuration) : a + b = ⟨a.val + b.val⟩ := rfl
+theorem add_def (a b : SignedDuration) : a + b = ⟨a.val + b.val⟩ := rfl
 
-instance : Sub SignedDuration where
+instance instSub : Sub SignedDuration where
   sub a b := ⟨a.val - b.val⟩
 
-theorem SignedDuration.sub_def (a b : SignedDuration) : a - b = ⟨a.val - b.val⟩ := rfl
+theorem sub_def (a b : SignedDuration) : a - b = ⟨a.val - b.val⟩ := rfl
 
-instance : HMul SignedDuration Nat SignedDuration where
+instance instHMulSelfNatSelf : HMul SignedDuration Nat SignedDuration where
   hMul d n := ⟨d.val * n⟩
 
-instance : HMod SignedDuration Int SignedDuration where
+instance instHModSelfIntSelf : HMod SignedDuration Int SignedDuration where
   hMod a n := ⟨a.val % n⟩
 
-instance : HDiv SignedDuration Nat SignedDuration where
+instance instHDivSelfNatSelf : HDiv SignedDuration Nat SignedDuration where
   hDiv a b := ⟨a.val / b⟩
 
-instance : HPow SignedDuration Nat SignedDuration where
+instance instHPowSelfNatSelf : HPow SignedDuration Nat SignedDuration where
   hPow a b := ⟨a.val ^ b⟩
 
-instance : LT SignedDuration where
+
+
+instance instLT : LT SignedDuration where
   lt := InvImage Int.lt SignedDuration.val
 
-instance : LE SignedDuration where
+instance instLE : LE SignedDuration where
   le := InvImage Int.le SignedDuration.val
 
-theorem SignedDuration.le_def {d₁ d₂ : SignedDuration} :
-  (d₁ <= d₂) = (d₁.val <= d₂.val)
+instance instDecidableLT (a b : SignedDuration) : Decidable (a < b) :=
+  inferInstanceAs (Decidable (a.val < b.val))
+instance instDecidableLE (a b : SignedDuration) : Decidable (a ≤ b) :=
+  inferInstanceAs (Decidable (a.val ≤ b.val))
+
+theorem le_def {d₁ d₂ : SignedDuration} :
+  (d₁ ≤ d₂) = (d₁.val ≤ d₂.val)
 := rfl
-theorem SignedDuration.lt_def {d₁ d₂ : SignedDuration} :
+theorem lt_def {d₁ d₂ : SignedDuration} :
   (d₁ < d₂) = (d₁.val < d₂.val)
 := rfl
 
-theorem SignedDuration.val_eq_of_eq :
+
+
+theorem val_eq_of_eq :
   ∀ {d1 d2 : SignedDuration}, d1 = d2 → d1.val = d2.val
 | ⟨_⟩, _, rfl => rfl
 
-theorem SignedDuration.eq_of_val_eq :
+theorem eq_of_val_eq :
   ∀ {d1 d2 : SignedDuration}, d1.val = d2.val → d1 = d2
 | ⟨_⟩, _, rfl => rfl
 
-theorem SignedDuration.eq_def {d₁ d₂ : SignedDuration} :
+theorem eq_def {d₁ d₂ : SignedDuration} :
   (d₁ = d₂) ↔ (d₁.val = d₂.val)
 := ⟨val_eq_of_eq, eq_of_val_eq⟩
 
-instance (a b : SignedDuration) : Decidable (a < b) := inferInstanceAs (Decidable (a.val < b.val))
-instance (a b : SignedDuration) : Decidable (a <= b) := inferInstanceAs (Decidable (a.val <= b.val))
 
-variable [Preorder SignedDuration]
 
-instance : LinearOrder SignedDuration where
+instance instLinearOrder :
+  LinearOrder SignedDuration
+where
   le_refl (a) := le_refl a.val
   le_trans (a b c) := Int.le_trans
   lt_iff_le_not_le (a b) := Int.lt_iff_le_not_le
@@ -127,36 +146,50 @@ instance : LinearOrder SignedDuration where
         simp [SignedDuration.eq_def]
         simp [SignedDuration.lt_def] at *
         simp [Int.le_antisymm not_b_lt_a not_a_lt_b]
-
-
-
   decidableLE := inferInstance
 
-theorem SignedDuration.monotone {d₁ d₂ : SignedDuration} : d₁.val <= d₂.val -> d₁ <= d₂ :=
-  fun h => (SignedDuration.le_def) ▸ h
 
-@[reducible] def SignedDuration.toNanos (d : SignedDuration) : Int := d.val
-@[reducible] def SignedDuration.toSeconds (d : SignedDuration) : Int := d.val / oneSecondNanos
-@[reducible] def SignedDuration.toMinutes (d : SignedDuration) : Int := d.val / oneMinuteNanos
-@[reducible] def SignedDuration.toHours (d : SignedDuration) : Int := d.val / oneHourNanos
-@[reducible] def SignedDuration.toDays (d : SignedDuration) : Int := d.val / oneDayNanos
-@[reducible] def SignedDuration.toWeeks (d : SignedDuration) : Int := d.val / oneWeekNanos
-@[reducible] def SignedDuration.toNonLeapYears (d : SignedDuration) : Int := d.val / (365 * oneDayNanos)
 
-@[reducible] def SignedDuration.fromNanos (n : Int) : SignedDuration := ⟨n⟩
-@[reducible] def SignedDuration.fromSeconds (n : Int) : SignedDuration := ⟨n * oneSecondNanos⟩
-@[reducible] def SignedDuration.fromMinutes (n : Int) : SignedDuration := ⟨n * oneMinuteNanos⟩
-@[reducible] def SignedDuration.fromHours (n : Int) : SignedDuration := ⟨n * oneHourNanos⟩
-@[reducible] def SignedDuration.fromWeeks (n : Int) : SignedDuration := ⟨n * oneWeekNanos⟩
-@[reducible] def SignedDuration.fromDays (n : Int) : SignedDuration := ⟨n * oneDayNanos⟩
-@[reducible] def SignedDuration.fromNonLeapYears (n : Int) : SignedDuration := ⟨n * oneYearNanos⟩
+theorem monotone {d₁ d₂ : SignedDuration} :
+  d₁.val ≤ d₂.val -> d₁ ≤ d₂
+:= fun h => le_def ▸ h
 
-instance (n : Nat) : OfNat SignedDuration n where
+@[reducible] def toNanos (d : SignedDuration) : Int :=
+  d.val
+@[reducible] def toSeconds (d : SignedDuration) : Int :=
+  d.val / oneSecondNanos
+@[reducible] def toMinutes (d : SignedDuration) : Int :=
+  d.val / oneMinuteNanos
+@[reducible] def toHours (d : SignedDuration) : Int :=
+  d.val / oneHourNanos
+@[reducible] def toDays (d : SignedDuration) : Int :=
+  d.val / oneDayNanos
+@[reducible] def toWeeks (d : SignedDuration) : Int :=
+  d.val / oneWeekNanos
+@[reducible] def toNonLeapYears (d : SignedDuration) : Int :=
+  d.val / (365 * oneDayNanos)
+
+@[reducible] def fromNanos (n : Int) : SignedDuration :=
+  ⟨n⟩
+@[reducible] def fromSeconds (n : Int) : SignedDuration :=
+  ⟨n * oneSecondNanos⟩
+@[reducible] def fromMinutes (n : Int) : SignedDuration :=
+  ⟨n * oneMinuteNanos⟩
+@[reducible] def fromHours (n : Int) : SignedDuration :=
+  ⟨n * oneHourNanos⟩
+@[reducible] def fromWeeks (n : Int) : SignedDuration :=
+  ⟨n * oneWeekNanos⟩
+@[reducible] def fromDays (n : Int) : SignedDuration :=
+  ⟨n * oneDayNanos⟩
+@[reducible] def fromNonLeapYears (n : Int) : SignedDuration :=
+  ⟨n * oneYearNanos⟩
+
+instance instOfNat (n : Nat) : OfNat SignedDuration n where
   ofNat := ⟨n⟩
 
-@[simp] theorem SignedDuration.zero_def : (0 : SignedDuration).val = (0 : Int) := by rfl
+@[simp] theorem zero_def : (0 : SignedDuration).val = (0 : Int) := by rfl
 
-instance : ToString SignedDuration where
+instance instToString : ToString SignedDuration where
   toString d :=
     let pfx := if d.isNonNeg then "" else "-"
     let d := d.abs
@@ -164,19 +197,22 @@ instance : ToString SignedDuration where
     let nanos := String.leftpad 9 '0' s!"{d.toNanos % Int.ofNat oneSecondNanos}"
     s!"{pfx}P{secs}.{nanos}S"
 
-instance : AddCommSemigroup SignedDuration := {
-  add_assoc := fun a b c => by simp [SignedDuration.add_def, AddSemigroup.add_assoc]
-  add_comm := fun a b => by simp [SignedDuration.add_def]; exact AddCommSemigroup.add_comm (G := Int) _ _
-}
+instance instAddCommSemigroup : AddCommSemigroup SignedDuration where
+  add_assoc a b c := by
+    simp [SignedDuration.add_def, AddSemigroup.add_assoc]
+  add_comm a b := by
+    simp [SignedDuration.add_def]
+    exact AddCommSemigroup.add_comm (G := Int) _ _
 
-instance : IsLeftCancelAdd SignedDuration where
-  add_left_cancel := fun a b c h0 => by
+instance instIsLeftCancelAdd : IsLeftCancelAdd SignedDuration where
+  add_left_cancel a b c h0 := by
     have h2 := SignedDuration.val_eq_of_eq h0
     simp only [SignedDuration.val] at h2
-    exact SignedDuration.eq_of_val_eq (@Int.add_left_cancel a.val b.val c.val (h2))
+    exact SignedDuration.eq_of_val_eq
+      (@Int.add_left_cancel a.val b.val c.val (h2))
 
-instance : IsRightCancelAdd SignedDuration where
-  add_right_cancel := fun a b c => by
+instance instIsRightCancelAdd : IsRightCancelAdd SignedDuration where
+  add_right_cancel a b c := by
     have h0 := @add_right_cancel Int _ _ a.val b.val c.val
     intro h1
     have h2 := SignedDuration.val_eq_of_eq h1
@@ -184,42 +220,46 @@ instance : IsRightCancelAdd SignedDuration where
     specialize h0 h2
     exact SignedDuration.eq_of_val_eq h0
 
-instance : AddCommMonoid SignedDuration where
-  add_zero := by simp [SignedDuration.eq_of_val_eq, SignedDuration.add_def, add_zero]
-  zero_add := by simp [SignedDuration.eq_of_val_eq, SignedDuration.add_def, zero_add]
+instance instAddCommMonoid : AddCommMonoid SignedDuration where
+  add_zero := by
+    simp [SignedDuration.eq_of_val_eq, SignedDuration.add_def, add_zero]
+  zero_add := by
+    simp [SignedDuration.eq_of_val_eq, SignedDuration.add_def, zero_add]
   nsmul_zero := by simp [nsmulRec]
   nsmul_succ := by simp [nsmulRec]
-  add_comm := by simp [SignedDuration.eq_of_val_eq, SignedDuration.add_def, add_comm]
+  add_comm := by
+    simp [SignedDuration.eq_of_val_eq, SignedDuration.add_def, add_comm]
 
-instance : Equiv Int SignedDuration where
+instance instEquivIntSelf : Equiv Int SignedDuration where
   toFun := SignedDuration.mk
   invFun := SignedDuration.val
   left_inv := by simp [Function.LeftInverse]
   right_inv := by simp [Function.RightInverse, Function.LeftInverse]
 
-instance : AddMonoidWithOne SignedDuration where
+instance instAddMonoidWithOne : AddMonoidWithOne SignedDuration where
   __ := inferInstanceAs (AddCommMonoid SignedDuration)
   natCast n := SignedDuration.mk (Int.ofNat n)
   natCast_zero := rfl
   natCast_succ _ := rfl
 
-private theorem SignedDuration.sub_eq_add_neg (a b : SignedDuration) : a - b = a + -b := by
-  simp [
-    SignedDuration.sub_def, SignedDuration.add_def, SignedDuration.neg_def,
-    HSub.hSub, Sub.sub, Int.sub
-  ]
+private theorem sub_eq_add_neg (a b : SignedDuration) :
+  a - b = a + -b
+:= by
+  simp [sub_def, add_def, neg_def, HSub.hSub, Sub.sub, Int.sub]
 
-private theorem SignedDuration.add_left_neg (a : SignedDuration) : -a + a = 0 := by
-  apply SignedDuration.eq_of_val_eq
-  simp [SignedDuration.sub_def, SignedDuration.add_def, SignedDuration.neg_def]
+private theorem add_left_neg (a : SignedDuration) :
+  -a + a = 0
+:= by
+  apply eq_of_val_eq
+  simp [sub_def, add_def, neg_def]
 
-instance : AddGroupWithOne SignedDuration where
+instance instAddGroupWithOne : AddGroupWithOne SignedDuration where
   __ := inferInstanceAs (AddMonoidWithOne (SignedDuration))
-  zsmul_zero' := fun _a => rfl
-  zsmul_succ' := fun _n _a => rfl
-  zsmul_neg' := fun _n _a => rfl
-  sub_eq_add_neg := SignedDuration.sub_eq_add_neg
-  add_left_neg := SignedDuration.add_left_neg
-  intCast := SignedDuration.mk
+  zsmul_zero' _a := rfl
+  zsmul_succ' _n _a := rfl
+  zsmul_neg' _n _a := rfl
+  sub_eq_add_neg := sub_eq_add_neg
+  add_left_neg := add_left_neg
+  intCast := mk
   intCast_ofNat _ := rfl
   intCast_negSucc _ := rfl
