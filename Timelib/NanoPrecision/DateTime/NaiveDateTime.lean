@@ -86,13 +86,13 @@ theorem eq_def : ∀ {d1 d2 : NaiveDateTime},
 
 theorem val_ne_of_ne : ∀ {d1 d2 : NaiveDateTime},
   d1 ≠ d2 → d1.nanos ≠ d2.nanos
-| ⟨x⟩, ⟨y⟩, h => by intro hh; apply h; exact congrArg NaiveDateTime.mk hh
+| ⟨x⟩, ⟨y⟩, h => by intro hh; apply h; exact congrArg mk hh
 
 instance instLT : LT NaiveDateTime where
-  lt := InvImage Int.lt NaiveDateTime.nanos
+  lt := InvImage Int.lt nanos
 
 instance instLE : LE NaiveDateTime where
-  le := InvImage Int.le NaiveDateTime.nanos
+  le := InvImage Int.le nanos
 
 @[simp] theorem le_def (d₁ d₂ : NaiveDateTime) :
   (d₁ <= d₂) = (d₁.nanos <= d₂.nanos)
@@ -115,13 +115,12 @@ instance instLinearOrder : LinearOrder NaiveDateTime where
   le_trans (a b c) := Int.le_trans
   lt_iff_le_not_le (a b) := Int.lt_iff_le_not_le
   le_antisymm (a b h1 h2) := by
-    apply NaiveDateTime.eq_of_val_eq
+    apply eq_of_val_eq
     exact le_antisymm h1 h2
-  le_total := by simp [NaiveDateTime.le_def, le_total]
+  le_total := by simp [le_def, le_total]
   decidableLE := inferInstance
   compare_eq_compareOfLessAndEq := by
-    simp [compare, compareOfLessAndEq,
-      NaiveDateTime.lt_def, NaiveDateTime.eq_def]
+    simp [compare, compareOfLessAndEq, lt_def, eq_def]
 
 def seconds (d : NaiveDateTime) : Int := d.nanos / oneSecondNanos
 
