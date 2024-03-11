@@ -69,14 +69,24 @@ instance : LT SignedDuration where
 instance : LE SignedDuration where
   le := InvImage Int.le SignedDuration.val
 
-theorem SignedDuration.le_def {d₁ d₂ : SignedDuration} : (d₁ <= d₂) = (d₁.val <= d₂.val) := rfl
-theorem SignedDuration.lt_def {d₁ d₂ : SignedDuration} : (d₁ < d₂) = (d₁.val < d₂.val) := rfl
+theorem SignedDuration.le_def {d₁ d₂ : SignedDuration} :
+  (d₁ <= d₂) = (d₁.val <= d₂.val)
+:= rfl
+theorem SignedDuration.lt_def {d₁ d₂ : SignedDuration} :
+  (d₁ < d₂) = (d₁.val < d₂.val)
+:= rfl
 
-theorem SignedDuration.val_eq_of_eq : ∀ {d1 d2 : SignedDuration} (h : d1 = d2), d1.val = d2.val
+theorem SignedDuration.val_eq_of_eq :
+  ∀ {d1 d2 : SignedDuration}, d1 = d2 → d1.val = d2.val
 | ⟨_⟩, _, rfl => rfl
 
-theorem SignedDuration.eq_of_val_eq : ∀ {d1 d2 : SignedDuration} (h : d1.val = d2.val), d1 = d2
+theorem SignedDuration.eq_of_val_eq :
+  ∀ {d1 d2 : SignedDuration}, d1.val = d2.val → d1 = d2
 | ⟨_⟩, _, rfl => rfl
+
+theorem SignedDuration.eq_def {d₁ d₂ : SignedDuration} :
+  (d₁ = d₂) ↔ (d₁.val = d₂.val)
+:= ⟨val_eq_of_eq, eq_of_val_eq⟩
 
 instance (a b : SignedDuration) : Decidable (a < b) := inferInstanceAs (Decidable (a.val < b.val))
 instance (a b : SignedDuration) : Decidable (a <= b) := inferInstanceAs (Decidable (a.val <= b.val))
@@ -100,20 +110,23 @@ instance : LinearOrder SignedDuration where
     intros a b
     exact cmp a b
   compare_eq_compareOfLessAndEq := by
-    simp only [compare, compareOfLessAndEq,
-        List.LT']
+    simp only [compare, compareOfLessAndEq, List.LT']
     simp [cmp]
     refine' fun a b ↦ _
     simp [cmpUsing]
-    by_cases h : a < b
-    · simp [h]
-    · simp [h]
-      by_cases h' : b < a
-      · have h'' : ¬ a = b := by sorry
-        simp [h'', h']
-      · have h'' : a = b := by sorry
-        simp [h', h'']
-        exact Eq.mpr_not (congrFun (congrArg LT.lt (id h''.symm)) b) h
+    split
+    · rfl
+    case inr not_a_lt_b =>
+      split
+      case inl b_lt_a =>
+        split
+        case inl a_eq_b =>
+          simp [a_eq_b, SignedDuration.lt_def] at b_lt_a
+        case inr not_a_eq_b => rfl
+      case inr not_b_lt_a =>
+        simp [SignedDuration.eq_def]
+        simp [SignedDuration.lt_def] at *
+        simp [Int.le_antisymm not_b_lt_a not_a_lt_b]
 
 
 
@@ -202,9 +215,9 @@ private theorem SignedDuration.add_left_neg (a : SignedDuration) : -a + a = 0 :=
 
 instance : AddGroupWithOne SignedDuration where
   __ := inferInstanceAs (AddMonoidWithOne (SignedDuration))
-  zsmul_zero' := fun a => rfl
-  zsmul_succ' := fun n a => rfl
-  zsmul_neg' := fun n a => rfl
+  zsmul_zero' := fun _a => rfl
+  zsmul_succ' := fun _n _a => rfl
+  zsmul_neg' := fun _n _a => rfl
   sub_eq_add_neg := SignedDuration.sub_eq_add_neg
   add_left_neg := SignedDuration.add_left_neg
   intCast := SignedDuration.mk
