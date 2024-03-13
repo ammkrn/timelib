@@ -4,7 +4,6 @@ import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
-import Mathlib.Tactic.LibrarySearch
 import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
 import Timelib.Date.Year
@@ -32,7 +31,7 @@ instance : FromJson Ymd where
     then return Ymd.mk year month day h.left h.right
     else Except.error s!"Ymd day out of range: {day}"
 
-theorem Ymd.eq_of_val_eq : ∀ {o₁ o₂ : Ymd} (h_year : o₁.year = o₂.year) (h_month : o₁.month = o₂.month) (h_day : o₁.day = o₂.day), o₁ = o₂
+theorem Ymd.eq_of_val_eq : ∀ {o₁ o₂ : Ymd} (_ : o₁.year = o₂.year) (_ : o₁.month = o₂.month) (_ : o₁.day = o₂.day), o₁ = o₂
 | ⟨y₁, m₁, d₁, hGt₁, hLt₁⟩, ⟨y₂, m₂, d₂, hGt₂, hLt₂⟩, hy, hm, hd => by
   simp [hy, hm, hd]
   exact ⟨hy, hm, hd⟩
@@ -171,8 +170,7 @@ instance : LinearOrder Ymd where
         | .inr (.inr d_gt) => simp [le_of_lt d_gt]
         | .inr (.inl d_eq) => simp [d_eq]
   decidableLE := inferInstance
-  compare_eq_compareOfLessAndEq := by sorry
-
+  compare_eq_compareOfLessAndEq := sorry
 
 theorem Ymd.numDays_pos (ymd : Ymd) : 0 < ymd.month.numDays ymd.year := by
   simp only [Month.numDays]

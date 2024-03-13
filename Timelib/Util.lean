@@ -302,7 +302,7 @@ theorem Int.mul_le_of_le_fdiv {n d q : Int} (hn : 0 <= n) (hd : 0 < d) (hq : 0 <
 
 --@[simp] theorem Int.mod_eq_zero_lemma (a b c m : Int) : (((a * m) + (b * m)) + c * m) % m = 0 := by simp
 
-@[simp] theorem Int.mod_eq_zero_lemma' (a b m : Int) : (((a * m) + (b * m)) + c) % m = c % m := by
+@[simp] theorem Int.mod_eq_zero_lemma' (a b c m : Int) : (((a * m) + (b * m)) + c) % m = c % m := by
   simp [(Int.add_mul a b m).symm, add_comm ((a + b) * m) c]
 
 --@[simp] theorem Int.mod_eq_of_lt {a b : ℤ} (H1 : 0 ≤ a) (H2 : a < b) : a % b = a := sorry
@@ -381,3 +381,19 @@ instance {n : Nat} : Lean.FromJson (Fin n) where
     if h : val < n
     then return Fin.mk val h
     else Except.error s!"Fin.val out of range: {val} is not less than {n}"
+
+/-
+In general, we're only concerned with si powers LE zero,
+because we need to remain coherent with one-second resolutions.
+For any si pow > 0, you end up losing information. E.g. adding a single
+leap second to a DateTime that's in (10^1) resolution is no longer
+a simple operation.
+-/
+abbrev NegSiPow := { z : Int // z <= 0 }
+abbrev SiPow := Int
+
+instance : OfNat NegSiPow 0 where
+  ofNat := ⟨0, by decide⟩
+
+instance : Coe NegSiPow SiPow where
+  coe p := p.val

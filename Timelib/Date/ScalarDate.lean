@@ -4,7 +4,6 @@ import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
-import Mathlib.Tactic.LibrarySearch
 import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
 
@@ -14,10 +13,10 @@ structure ScalarDate where
   day : Int
 deriving Repr, ToJson, FromJson
 
-theorem ScalarDate.val_eq_of_eq : ∀ {d₁ d₂ : ScalarDate} (h : d₁ = d₂), d₁.day = d₂.day
+theorem ScalarDate.val_eq_of_eq : ∀ {d₁ d₂ : ScalarDate} (_ : d₁ = d₂), d₁.day = d₂.day
 | ⟨_⟩, _, rfl => rfl
 
-theorem ScalarDate.eq_of_val_eq : ∀ {d₁ d₂ : ScalarDate} (h : d₁.day = d₂.day), d₁ = d₂
+theorem ScalarDate.eq_of_val_eq : ∀ {d₁ d₂ : ScalarDate} (_ : d₁.day = d₂.day), d₁ = d₂
 | ⟨_⟩, _, rfl => rfl
 
 instance : LE ScalarDate where

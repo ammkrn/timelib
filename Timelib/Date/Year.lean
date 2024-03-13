@@ -4,7 +4,6 @@ import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
-import Mathlib.Tactic.LibrarySearch
 import Mathlib.Tactic.SimpRw
 import Mathlib.Tactic.Linarith
 import Mathlib.Logic.Equiv.Basic
