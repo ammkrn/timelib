@@ -12,87 +12,183 @@ import Timelib.NanoPrecision.Duration.UnsignedDuration
 import Timelib.NanoPrecision.ClockTime.NaiveClockTime
 import Lean.Data.Json
 
+
+
 structure ClockTime (A : TimeZone) where
   naive : NaiveClockTime
-deriving DecidableEq, Ord, Hashable, Repr, Lean.ToJson, Lean.FromJson
+deriving DecidableEq, Hashable, Repr, Lean.ToJson, Lean.FromJson
 
-section ClockTimeStuff
 
-variable {A : TimeZone} (t : ClockTime A)
 
-instance : Inhabited <| ClockTime A := ⟨0, Nat.zero_lt_succ _⟩
+namespace ClockTime
 
-theorem ClockTime.eq_of_val_eq : ∀ {t₁ t₂ : ClockTime A} (h : t₁.naive = t₂.naive), t₁ = t₂
+
+
+instance instOrd : Ord (ClockTime A) where
+  compare a b := compare a.naive b.naive
+
+protected def default : ClockTime A :=
+  ⟨default⟩
+
+instance instInhabited : Inhabited <| ClockTime A :=
+  ⟨⟨default⟩⟩
+
+
+
+theorem eq_of_val_eq : ∀ {t₁ t₂ : ClockTime A},
+  t₁.naive = t₂.naive → t₁ = t₂
 | ⟨_, _⟩, ⟨_, _⟩, rfl => rfl
 
-/-- Addition of a `SignedDuration` to a `ClockTime`; wraps into the next clock cycle. -/
-instance : HAdd (ClockTime A) SignedDuration (ClockTime A) where
+theorem val_eq_of_eq : ∀ {t₁ t₂ : ClockTime A},
+  t₁ = t₂ → t₁.naive = t₂.naive
+| ⟨_, _⟩, ⟨_, _⟩, rfl => rfl
+
+theorem eq_def : ∀ {t₁ t₂ : ClockTime A},
+  t₁ = t₂ ↔ t₁.naive = t₂.naive
+:= ⟨val_eq_of_eq, eq_of_val_eq⟩
+
+
+
+/-- Addition of a `SignedDuration` to a `ClockTime`; wraps into the next clock
+cycle. -/
+instance instHAddSelfSignedDurationSelf :
+  HAdd (ClockTime A) SignedDuration (ClockTime A)
+where
   hAdd t d := ⟨t.naive + d⟩
 
-instance : HAdd SignedDuration (ClockTime A) (ClockTime A) where
+instance instHAddSignedDurationSelfSelf :
+  HAdd SignedDuration (ClockTime A) (ClockTime A)
+where
   hAdd t d := d + t
 
-theorem ClockTime.hAdd_signed_def (dur : SignedDuration) : t + dur = ⟨t.naive + dur⟩ := rfl
+section hAdd_lemmas
+  variable
+    (t : ClockTime A)
+    (d d₁ d₂ : SignedDuration)
 
-theorem ClockTime.hAdd_comm (t : ClockTime A) (d : SignedDuration) : t + d = d + t := rfl
-theorem ClockTime.hAdd_assoc (t : ClockTime A) (d₁ d₂ : SignedDuration) : (t + d₁) + d₂ = t + (d₁ + d₂ ):= sorry
+  theorem hAdd_signed_def : t + d = ⟨t.naive + d⟩ :=
+    rfl
+  theorem hAdd_comm : t + d = d + t :=
+    rfl
+  theorem hAdd_assoc : (t + d₁) + d₂ = t + (d₁ + d₂ ) :=
+    sorry
+end hAdd_lemmas
 
-/--
-Subtraction of a `SignedDuration` from a `ClockTime`; the implementation follows
-that of `Fin n`, wrapping into the previous clock cycle on underflow
+
+
+/-- Subtraction of a `SignedDuration` from a `ClockTime`. The implementation
+follows that of `Fin n`, wrapping into the previous clock cycle on underflow.
 -/
-instance : HSub (ClockTime A) SignedDuration (ClockTime A) where
+instance instHSubSelfSignedDurationSelf :
+  HSub (ClockTime A) SignedDuration (ClockTime A)
+where
   hSub t d := ⟨t.naive - d⟩
 
 
-theorem ClockTime.hSub_signed_def (dur : SignedDuration) : t - dur = ⟨t.naive - dur⟩ := rfl
+theorem hSub_signed_def (t : ClockTime A) (d : SignedDuration) :
+  t - d = ⟨t.naive - d⟩
+:= rfl
 
 
-def ClockTime.toLocalNaive (t : ClockTime A) : NaiveClockTime := t.naive + A.offset
+def toLocalNaive (t : ClockTime A) : NaiveClockTime :=
+  t.naive + A.offset
 
-theorem ClockTime.apply_unapply : t + A.offset - A.offset = t := by
-  simp [ClockTime.hAdd_signed_def, ClockTime.hSub_signed_def, NaiveClockTime.hAdd_signed_def, NaiveClockTime.hSub_signed_def, sub_eq_add_neg, add_assoc]
 
-theorem ClockTime.unapply_apply : t - A.offset + A.offset = t := by
-  simp [ClockTime.hAdd_signed_def, ClockTime.hSub_signed_def, NaiveClockTime.hAdd_signed_def, NaiveClockTime.hSub_signed_def, sub_eq_add_neg, add_assoc]
 
-/-
-The nanosecond component of a `ClockTime`. To convert the `ClockTime` to
-nanoseconds, use `ClockTime.asNanos`.
--/
-def ClockTime.nanoComponent (t : ClockTime A) : Nat := t.toLocalNaive.nanoComponent
-def ClockTime.secondComponent (t : ClockTime A) : Nat := t.toLocalNaive.secondComponent
-def ClockTime.minuteComponent (t : ClockTime A) : Nat := t.toLocalNaive.minuteComponent
-def ClockTime.hourComponent (t : ClockTime A) : Nat := t.toLocalNaive.hourComponent
+section
+  variable {A : TimeZone} (t : ClockTime A)
 
-def ClockTime.fromNeutralSignedDuration (d : SignedDuration) : ClockTime A := ⟨NaiveClockTime.fromSignedDuration d⟩
+  theorem apply_unapply {A : TimeZone} : t + A.offset - A.offset = t := by
+    simp [
+      hAdd_signed_def, hSub_signed_def,
+      NaiveClockTime.hAdd_signed_def, NaiveClockTime.hSub_signed_def,
+      sub_eq_add_neg, add_assoc
+    ]
 
-def ClockTime.fromNeutralHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : ClockTime A :=
-  ClockTime.fromNeutralSignedDuration ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
+  theorem unapply_apply {A : TimeZone} : t - A.offset + A.offset = t := by
+    simp [
+      hAdd_signed_def, hSub_signed_def,
+      NaiveClockTime.hAdd_signed_def, NaiveClockTime.hSub_signed_def,
+      sub_eq_add_neg, add_assoc
+    ]
+end
 
-def ClockTime.fromLocalHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : ClockTime A :=
-  let dur : SignedDuration := ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
+
+
+section
+  variable (t : ClockTime A)
+
+  /- The nanosecond component of a `ClockTime`. To convert a `ClockTime` to
+  nanoseconds, use `ClockTime.asNanos`.
+  -/
+  def nanoComponent : Nat :=
+    t.toLocalNaive.nanoComponent
+  def secondComponent : Nat :=
+    t.toLocalNaive.secondComponent
+  def minuteComponent : Nat :=
+    t.toLocalNaive.minuteComponent
+  def hourComponent : Nat :=
+    t.toLocalNaive.hourComponent
+
+  def asNanos : Nat :=
+    t.toLocalNaive.asNanos
+  def asSeconds : Nat :=
+    t.toLocalNaive.asSeconds
+  def asMinutes : Nat :=
+    t.toLocalNaive.asMinutes
+  def asHours : Nat :=
+    t.toLocalNaive.asHours
+end
+
+
+
+def fromNeutralSignedDuration (d : SignedDuration) : ClockTime A :=
+  ⟨NaiveClockTime.fromSignedDuration d⟩
+
+def fromNeutralHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : ClockTime A :=
+  ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
+  |> fromNeutralSignedDuration
+
+def fromLocalHmsn (h : Nat) (m : Nat) (s : Nat) (n : Nat) : ClockTime A :=
+  let dur : SignedDuration :=
+    ⟨(h * oneHourNanos) + (m * oneMinuteNanos) + (s * oneSecondNanos) + n⟩
   ⟨NaiveClockTime.fromSignedDuration (dur - A.offset)⟩
 
-instance : LT (ClockTime A) where
-  lt := InvImage (instLTNaiveClockTime.lt) ClockTime.naive
 
-instance : LE (ClockTime A) where
-  le := InvImage (instLENaiveClockTime.le) ClockTime.naive
 
-@[simp] theorem ClockTime.le_def (d₁ d₂ : ClockTime Z) : (d₁ <= d₂) = (d₁.naive <= d₂.naive) := rfl
-@[simp] theorem ClockTime.lt_def (d₁ d₂ : ClockTime Z) : (d₁ < d₂) = (d₁.naive < d₂.naive) := rfl
+instance instLT : LT (ClockTime A) where
+  lt := InvImage (NaiveClockTime.instLT.lt) naive
 
-instance instDecidableLEClockTime (a b : ClockTime A) : Decidable (a <= b) := inferInstanceAs (Decidable (a.naive <= b.naive))
-instance instDecidableLTClockTime (a b : ClockTime A) : Decidable (a < b) := inferInstanceAs (Decidable (a.naive < b.naive))
+instance instLE : LE (ClockTime A) where
+  le := InvImage (NaiveClockTime.instLE.le) naive
 
-instance {Z : TimeZone} : Equiv (Fin oneDayNanos) (ClockTime Z) where
-  toFun := fun fin => ClockTime.mk (NaiveClockTime.mk fin)
-  invFun := fun t => t.naive.nanos
+@[simp] theorem le_def (d₁ d₂ : ClockTime Z) :
+  (d₁ <= d₂) = (d₁.naive <= d₂.naive)
+:= rfl
+
+@[simp] theorem lt_def (d₁ d₂ : ClockTime Z) :
+  (d₁ < d₂) = (d₁.naive < d₂.naive)
+:= rfl
+
+section
+  variable (a b : ClockTime A)
+
+  instance instDecidableLE : Decidable (a <= b) :=
+    inferInstanceAs (Decidable (a.naive <= b.naive))
+
+  instance instDecidableLT : Decidable (a < b) :=
+    inferInstanceAs (Decidable (a.naive < b.naive))
+end
+
+
+
+instance instEquivFinSelf : Equiv (Fin oneDayNanos) (ClockTime Z) where
+  toFun fin := ClockTime.mk (NaiveClockTime.mk fin)
+  invFun t :=  t.naive.nanos
   left_inv := by simp [Function.LeftInverse]
   right_inv := by simp [Function.RightInverse, Function.LeftInverse]
 
-instance : LinearOrder (ClockTime Z) where
+instance instLinearOrder : LinearOrder (ClockTime Z) where
   le_refl (a) := le_refl a.naive
   le_trans (a b c) := Nat.le_trans
   lt_iff_le_not_le (a b) := Nat.lt_iff_le_not_le
@@ -101,15 +197,14 @@ instance : LinearOrder (ClockTime Z) where
     exact le_antisymm h1 h2
   le_total := by simp [ClockTime.le_def, le_total]
   decidableLE := inferInstance
-  compare_eq_compareOfLessAndEq := by sorry
+  compare_eq_compareOfLessAndEq := by
+    simp [compare, compareOfLessAndEq, lt_def, eq_def, NaiveClockTime.eq_def']
 
-instance : ToString (ClockTime A) where
+instance instToString : ToString (ClockTime A) where
   toString t :=
-    let withTimeZone := t.toLocalNaive
-    let h := String.leftpad 2 '0' (ToString.toString $ withTimeZone.hourComponent)
-    let m := String.leftpad 2 '0' (ToString.toString $ withTimeZone.minuteComponent)
-    let s := String.leftpad 2 '0' (ToString.toString $ withTimeZone.secondComponent)
-    let n := String.leftpad 9 '0' (ToString.toString $ withTimeZone.nanoComponent)
-  s!"{h}:{m}:{s}.{n}{A.abbreviation}"
-
-end ClockTimeStuff
+    let t := t.toLocalNaive
+    let h := t.hourComponent   |> toString |> String.leftpad 2 '0'
+    let m := t.minuteComponent |> toString |> String.leftpad 2 '0'
+    let s := t.secondComponent |> toString |> String.leftpad 2 '0'
+    let n := t.nanoComponent   |> toString |> String.leftpad 9 '0'
+    s!"{h}:{m}:{s}.{n}{A.abbreviation}"
