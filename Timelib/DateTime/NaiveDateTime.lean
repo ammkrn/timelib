@@ -3,6 +3,7 @@ import Timelib.Util
 import Timelib.Date.ScalarDate
 import Timelib.Date.Convert
 import Timelib.Duration.Constants
+import Mathlib.Tactic.Common
 
 namespace Timelib
 
@@ -18,7 +19,7 @@ or equal to zero.
 -/
 structure NaiveDateTime (p : NegSiPow) where
   val : Int
-deriving DecidableEq, Ord, Hashable, Repr --, Lean.ToJson, Lean.FromJson
+deriving DecidableEq, Ord, Hashable, Repr
 
 namespace NaiveDateTime
 variable {siPow : NegSiPow}
@@ -41,15 +42,15 @@ def toScalarDate (dt : NaiveDateTime siPow) : ScalarDate :=
   let zeroBasedDay := dt.val.fdiv oneDay.val
   ⟨zeroBasedDay + 1⟩
 
-def toScalarDate2 (dt : NaiveDateTime siPow) : ScalarDate :=
-  let oneDay := SignedDuration.Constants.oneDayDuration siPow
-  if dt.val < 0
-  then
-    let zeroBasedDay := dt.val.div oneDay.val
-    ⟨zeroBasedDay⟩
-  else
-    let zeroBasedDay := dt.val.div oneDay.val
-    ⟨zeroBasedDay + 1⟩
+--def toScalarDate' (dt : NaiveDateTime siPow) : ScalarDate :=
+--  let oneDay := SignedDuration.Constants.oneDayDuration siPow
+--  if dt.val < 0
+--  then
+--    let zeroBasedDay := dt.val.div oneDay.val
+--    ⟨zeroBasedDay⟩
+--  else
+--    let zeroBasedDay := dt.val.div oneDay.val
+--    ⟨zeroBasedDay + 1⟩
 
 def dayOfWeek (dt : NaiveDateTime siPow) : Int :=
   dt.toScalarDate.dayOfWeek
@@ -68,16 +69,17 @@ def fromYmd
   let zeroBasedDay := oneBasedDay - 1
   let oneDay : SignedDuration siPow.val := SignedDuration.Constants.oneDayDuration _
   ⟨oneDay.val * zeroBasedDay⟩
-  --⟨oneDay.val * ((Ymd.mk y m d hd.left hd.right).toScalarDate.day - 1)⟩
 
+--instance instHAddSelfSignedDurationSelf' {z : Int} :
+--  HAdd (NaiveDateTime siPow) (SignedDuration z) (NaiveDateTime (minLeft siPow z))
+--where
+--  hAdd da du := ⟨da.val + du.val⟩
 
-  --⟨(fromYmd y m d hd).val + (oneSecondval * s) + n⟩
-
+@[default_instance]
 instance instHAddSelfSignedDurationSelf :
   HAdd (NaiveDateTime siPow) (SignedDuration siPow) (NaiveDateTime siPow)
 where
   hAdd da du := ⟨da.val + du.val⟩
-
 
 @[default_instance]
 instance instHAddSignedDurationSelfSelf :
@@ -223,65 +225,6 @@ theorem hAdd_signed_comm (t : NaiveDateTime siPow) (d : SignedDuration siPow) :
 def convertLossless
   {fine coarse : NegSiPow}
   (d : NaiveDateTime coarse)
-  (h : fine <= coarse := by decide) :
+  (_ : fine <= coarse := by decide) :
   NaiveDateTime fine :=
-    match coarse.val - fine.val, Int.sub_nonneg_of_le h with
-    | Int.ofNat n, _ => ⟨d.val * (10 ^ n)⟩
-    | Int.negSucc _, h_zero_le =>
-      False.elim ((not_lt_of_ge h_zero_le) (Int.neg_of_sign_eq_neg_one rfl))
-
-def convertLossless'
-  {p : NegSiPow}
-  (d : NaiveDateTime p)
-  (tgt: NegSiPow) :
-  NaiveDateTime (min p tgt) :=
-  if h : p <= tgt
-  then (min_eq_left h).symm ▸ d
-  else d.convertLossless (min_le_left p tgt)
-
-
---instance instHAddSelfUnsignedDurationSelf :
---  HAdd (NaiveDateTime siPow) UnsignedDuration NaiveDateTime
---where
---  hAdd da du := ⟨da.nanos + du.val⟩
---
---instance instHAddUnsignedDurationSelfSelf :
---  HAdd UnsignedDuration NaiveDateTime NaiveDateTime
---where
---  hAdd du da := da + du
---
---theorem hAdd_unsigned_def (d : NaiveDateTime siPow) (dur : UnsignedDuration) :
---  d + dur = ⟨d.val + dur.val⟩
---:= rfl
---
---instance instHSubSelfUnsignedDurationSelf :
---  HSub NaiveDateTime UnsignedDuration NaiveDateTime
---where
---  hSub da du := ⟨da.nanos - du.val⟩
---
---theorem hSub_unsigned_def (d : NaiveDateTime) (dur : UnsignedDuration) :
---  d - dur = ⟨d.nanos - dur.val⟩
---:= rfl
---
---theorem hAdd_unsigned_sub_cancel (t : NaiveDateTime) (d : UnsignedDuration) :
---  t + d - d = t
---:= hAdd_signed_sub_cancel t d
---
---theorem hAdd_unsigned_sub_add_cancel
---  (t : NaiveDateTime) (d : UnsignedDuration)
---: t - d + d = t
---:= hAdd_signed_sub_add_cancel t d
---
---theorem hAdd_unsigned_comm (t : NaiveDateTime) (d : UnsignedDuration) :
---  t + d = d + t
---:= hAdd_signed_comm t d
---
---/--
---Set the clock time of the current day to `tgt`.
----/
---@[reducible]
---def setClockTime (t : NaiveDateTime) (clockTime : NaiveClockTime) :
---  NaiveDateTime
---:=
---  let days := (t.nanos.fdiv oneDayNanos) * oneDayNanos
---  ⟨days + clockTime.nanos.val⟩
+    ⟨d.val * (10 ^ (coarse.val - fine.val).natAbs)⟩

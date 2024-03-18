@@ -6,7 +6,8 @@ import Timelib.DateTime.LeapSeconds
 
 open Timelib
 
-structure DateTime (precision : NegSiPow) (L : LeapSeconds) (Z : TimeZone) extends NaiveDateTime precision
+structure DateTime (precision : NegSiPow) (L : LeapSeconds) (Z : TimeZone)
+  extends NaiveDateTime precision
 
 instance (p : NegSiPow) {L : LeapSeconds} {Z : TimeZone} : Inhabited (DateTime p L Z) where
   default := ⟨Inhabited.default⟩
@@ -15,8 +16,8 @@ def DateTime.changeLeapSeconds
   {p : NegSiPow}
   {L : LeapSeconds}
   {Z : TimeZone}
-  (L' : LeapSeconds)
-  (d : DateTime p L Z) :
+  (d : DateTime p L Z)
+  (L' : LeapSeconds) :
   DateTime p L' Z :=
   ⟨d.toNaiveDateTime⟩
 
@@ -24,15 +25,14 @@ def DateTime.changeTimeZone
   {p : NegSiPow}
   {L : LeapSeconds}
   {Z : TimeZone}
-  (Z' : TimeZone)
-  (d : DateTime p L Z) :
+  (d : DateTime p L Z)
+  (Z' : TimeZone):
   DateTime p L Z' :=
   ⟨d.toNaiveDateTime⟩
 
 section DateTime
 
 variable {p : NegSiPow} {L L' : LeapSeconds} {Z : TimeZone}
-
 
 theorem DateTime.eq_of_val_eq : ∀ {d₁ d₂ : DateTime p L Z} (_ : d₁.toNaiveDateTime = d₂.toNaiveDateTime), d₁ = d₂
 | ⟨_⟩, _, rfl => rfl
@@ -83,11 +83,11 @@ theorem DateTime.hAdd_signed_assoc (d : DateTime p L Z) (dur₁ dur₂ : (Signed
 theorem DateTime.hAdd_signed_comm (d : DateTime p L Z) (dur : (SignedDuration p)) : d + dur = dur + d := by
   simp [DateTime.hAdd_signed_def, NaiveDateTime.hAdd_signed_def, DateTime.hAdd_signed_def_rev, NaiveDateTime.hAdd_signed_def_rev]
 
-def DateTime.normalizePrecision {p' : NegSiPow} : DateTime p L Z → DateTime p' L Z → ((DateTime (min p p') L Z) × (DateTime (min p p') L Z))
-  | d₁, d₂ =>
-  let naive₁ := d₁.toNaiveDateTime.convertLossless' (min p p')
-  let naive₂ := d₂.toNaiveDateTime.convertLossless' (min p p')
-  sorry
+def DateTime.simultaneous (d₁ d₂ : DateTime p L Z) : Prop :=
+  d₁.toNaiveDateTime = d₂.toNaiveDateTime
+
+def DateTime.convertLossless {p' : NegSiPow} (d : DateTime p L Z) (h : p' <= p := by decide) : DateTime p' L Z :=
+  ⟨d.toNaiveDateTime.convertLossless h⟩
 
 structure HDateTime where
   precision : NegSiPow
@@ -97,68 +97,62 @@ structure HDateTime where
 
 section HDateTime
 
-variable (t : HDateTime)
+variable (t : HDateTime) {dp : Int}
+
+
+@[reducible]
+def HDateTime.toNaiveLossless {p': NegSiPow} (d : HDateTime) (h : p' <= d.precision): NaiveDateTime p' :=
+  d.val.toNaiveDateTime.convertLossless h
+
+@[reducible]
+def HDateTime.convertLossless {p': NegSiPow} (d : HDateTime) (h : p' <= d.precision) : { d' // (d' : HDateTime).precision = p' } :=
+  let out := {
+    precision := p'
+    leap := d.leap
+    zone := d.zone
+    val := ⟨d.toNaiveLossless h⟩
+  }
+  ⟨out, by simp⟩
+
+@[reducible]
+def HDateTime.toNaiveLosslessMixed {p' : Int} (d : HDateTime) : NaiveDateTime (minLeft d.precision p') :=
+  d.val.toNaiveDateTime.convertLossless (fine := minLeft d.precision p') (coarse := d.precision) (minLeft_le _ _)
+
 
 @[reducible]
 def HDateTime.simultaneous : HDateTime → HDateTime → Prop
 | ⟨p₁, _, _, ⟨naive₁⟩⟩, ⟨p₂, _, _, ⟨naive₂⟩⟩ =>
-  if h : p₁.val <= p₂.val
-  then
-    naive₁ = (naive₂.convertLossless h)
-  else
-    (naive₁.convertLossless (Int.le_of_lt (Int.lt_of_not_ge h))) = naive₂
+  (naive₁.convertLossless (min_le_left p₁ p₂)) = (naive₂.convertLossless (min_le_right p₁ p₂))
 
-/-
 /--
 LT compares the underlying naive DateTime.
 -/
 instance : LT HDateTime where
-  lt := InvImage NaiveDateTime.instLT.lt (siPow := ) (fun t => t.val.toNaiveDateTime)
+  lt a b :=
+    (a.toNaiveLossless (min_le_left a.precision b.precision))
+    < (b.toNaiveLossless (min_le_right a.precision b.precision))
 
 /--
 LE compares the underlying naive DateTime
 -/
 instance : LE HDateTime where
-  le := InvImage NaiveDateTime.instLE.le (fun t => t.dateTime.naive)
+  le a b :=
+    (a.toNaiveLossless (min_le_left a.precision b.precision))
+    <= (b.toNaiveLossless (min_le_right a.precision b.precision))
 
-@[simp] theorem HDateTime.le_def (d₁ d₂ : HDateTime) : (d₁ <= d₂) = (d₁.dateTime.naive <= d₂.dateTime.naive) := rfl
-@[simp] theorem HDateTime.lt_def (d₁ d₂ : HDateTime) : (d₁ < d₂) = (d₁.dateTime.naive < d₂.dateTime.naive) := rfl
 
-instance instDecidableLTHDateTime (a b : HDateTime) : Decidable (a < b) := inferInstanceAs (Decidable (a.dateTime.naive < b.dateTime.naive))
-instance instDecidableLEHDateTime (a b : HDateTime) : Decidable (a <= b) := inferInstanceAs (Decidable (a.dateTime.naive <= b.dateTime.naive))
+@[simp] theorem HDateTime.le_def (d₁ d₂ : HDateTime) :
+  (d₁ <= d₂) = ((d₁.toNaiveLossless (min_le_left d₁.precision d₂.precision)) <= (d₂.toNaiveLossless (min_le_right d₁.precision d₂.precision))) := rfl
 
-/--
-HDateTime is only a Preorder since it does not respect antisymmetry.
-t₁ <= t₂ ∧ t₂ <= t₁ does not imply t₁ = t₂ since they may have different offets/timezones.
--/
-instance : Preorder HDateTime where
-  le_refl a := le_refl a.dateTime.naive
-  le_trans _a _b _c := Int.le_trans
-  lt_iff_le_not_le _a _b := Int.lt_iff_le_not_le
+@[simp] theorem HDateTime.lt_def (d₁ d₂ : HDateTime) :
+  (d₁ < d₂) =
+  (d₁.toNaiveLossless (min_le_left d₁.precision d₂.precision)
+  < (d₂.toNaiveLossless (min_le_right d₁.precision d₂.precision))) := rfl
 
-instance : HAdd HDateTime SignedDuration HDateTime where
-  hAdd da du := ⟨da.offset, da.dateTime + du⟩
+instance instDecidableLTHDateTime (a b : HDateTime) : Decidable (a < b) :=
+  inferInstanceAs <| Decidable <|
+    a.toNaiveLossless (min_le_left a.precision b.precision) < b.toNaiveLossless (min_le_right a.precision b.precision)
 
-instance : HAdd SignedDuration HDateTime HDateTime  where
-  hAdd du da := da + du
-
-theorem HDateTime.hAdd_def (d : HDateTime) (dur : SignedDuration) : d + dur = ⟨d.offset, d.dateTime  + dur⟩ := rfl
-
-instance : HSub HDateTime SignedDuration HDateTime where
-  hSub da du := ⟨da.offset, da.dateTime + -du⟩
-
-theorem HDateTime.hSub_def (d : HDateTime) (dur : SignedDuration) : d - dur = ⟨d.offset, d.dateTime + -dur⟩ := rfl
-
-instance : HAdd HDateTime UnsignedDuration HDateTime where
-  hAdd da du := ⟨da.offset, da.dateTime + du⟩
-
-instance : HAdd UnsignedDuration HDateTime HDateTime  where
-  hAdd du da := da + du
-
-theorem HDateTime.hAdd_def_unsigned (d : HDateTime) (dur : UnsignedDuration) : d + dur = ⟨d.offset, d.dateTime + dur⟩ := rfl
-
-instance : HSub HDateTime UnsignedDuration HDateTime where
-  hSub da du := ⟨da.offset, da.dateTime - du⟩
-
-theorem HDateTime.hSub_def_unsigned (d : HDateTime) (dur : UnsignedDuration) : d - dur = ⟨d.offset, d.dateTime - dur⟩ := rfl
--/
+instance instDecidableLEHDateTime (a b : HDateTime) : Decidable (a <= b) :=
+  inferInstanceAs <| Decidable <|
+    a.toNaiveLossless (min_le_left a.precision b.precision) <= b.toNaiveLossless (min_le_right a.precision b.precision)

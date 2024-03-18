@@ -397,3 +397,20 @@ instance : OfNat NegSiPow 0 where
 
 instance : Coe NegSiPow SiPow where
   coe p := p.val
+
+def minLeft (x : NegSiPow) (y : Int) : NegSiPow :=
+  ⟨min x.val y, Int.le_trans (min_le_left x.val y) x.property⟩
+
+theorem minLeft_eq  (x : NegSiPow) (y : Int) : (minLeft x y).val = min x.val y := rfl
+
+theorem minLeft_le (x : NegSiPow) (y : Int) : (minLeft x y) <= x := by
+  simp only [minLeft]
+  exact min_le_left x.val y
+
+theorem minLeft_eq' (x : NegSiPow) (y : Int) : (minLeft (minLeft x y) (min (↑x) y)) = (minLeft x y) :=
+  have h0 : (minLeft (minLeft x y) (min (↑x) y)).val = (minLeft x y).val := by exact min_self (min (↑x) y)
+  Subtype.val_inj.mp h0
+
+def minRight (y : Int) (x : NegSiPow) : NegSiPow := minLeft x y
+
+theorem minRight_eq (x : NegSiPow) (y : Int) : (minRight y x).val = min x.val y := rfl
