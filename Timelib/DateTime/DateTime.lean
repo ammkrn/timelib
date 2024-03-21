@@ -4,16 +4,18 @@ import Timelib.Util
 import Timelib.DateTime.TimeZone
 import Timelib.DateTime.LeapSeconds
 
-open Timelib
+namespace Timelib
 
-structure DateTime (precision : NegSiPow) (L : LeapSeconds) (Z : TimeZone)
+structure DateTime (precision : Int) (L : LeapSeconds) (Z : TimeZone)
   extends NaiveDateTime precision
 
-instance (p : NegSiPow) {L : LeapSeconds} {Z : TimeZone} : Inhabited (DateTime p L Z) where
-  default := ⟨Inhabited.default⟩
+namespace DateTime
+
+instance instDefault {p : Int} {isLe : p <= 0} {L : LeapSeconds} {Z : TimeZone} : Inhabited (DateTime p L Z) where
+  default := ⟨Inhabited.default, isLe⟩
 
 def DateTime.changeLeapSeconds
-  {p : NegSiPow}
+  {p : Int}
   {L : LeapSeconds}
   {Z : TimeZone}
   (d : DateTime p L Z)
@@ -22,7 +24,7 @@ def DateTime.changeLeapSeconds
   ⟨d.toNaiveDateTime⟩
 
 def DateTime.changeTimeZone
-  {p : NegSiPow}
+  {p : Int}
   {L : LeapSeconds}
   {Z : TimeZone}
   (d : DateTime p L Z)
@@ -30,14 +32,14 @@ def DateTime.changeTimeZone
   DateTime p L Z' :=
   ⟨d.toNaiveDateTime⟩
 
-section DateTime
+section DateTime_section
 
-variable {p : NegSiPow} {L L' : LeapSeconds} {Z : TimeZone}
+variable {p p2 p3 : Int} {L L' L2 L3 : LeapSeconds} {Z Z2 Z3 : TimeZone}
 
-theorem DateTime.eq_of_val_eq : ∀ {d₁ d₂ : DateTime p L Z} (_ : d₁.toNaiveDateTime = d₂.toNaiveDateTime), d₁ = d₂
+theorem eq_of_val_eq : ∀ {d₁ d₂ : DateTime p L Z} (_ : d₁.toNaiveDateTime = d₂.toNaiveDateTime), d₁ = d₂
 | ⟨_⟩, _, rfl => rfl
 
-theorem DateTime.val_ne_of_ne : ∀ {d₁ d₂ : DateTime p L Z} (_ : d₁ ≠ d₂), d₁.toNaiveDateTime ≠ d₂.toNaiveDateTime
+theorem val_ne_of_ne : ∀ {d₁ d₂ : DateTime p L Z} (_ : d₁ ≠ d₂), d₁.toNaiveDateTime ≠ d₂.toNaiveDateTime
 | ⟨x⟩, ⟨y⟩, h => by intro hh; apply h; exact congrArg DateTime.mk hh
 
 instance : LT (DateTime p L Z) where
@@ -46,11 +48,11 @@ instance : LT (DateTime p L Z) where
 instance : LE (DateTime p L Z) where
   le := InvImage (NaiveDateTime.instLE.le) DateTime.toNaiveDateTime
 
-@[simp] theorem DateTime.le_def (d₁ d₂ : DateTime p L Z) : (d₁ <= d₂) = (d₁.toNaiveDateTime <= d₂.toNaiveDateTime) := rfl
-@[simp] theorem DateTime.lt_def (d₁ d₂ : DateTime p L Z) : (d₁ < d₂) = (d₁.toNaiveDateTime < d₂.toNaiveDateTime) := rfl
+@[simp] theorem le_def (d₁ d₂ : DateTime p L Z) : (d₁ <= d₂) = (d₁.toNaiveDateTime <= d₂.toNaiveDateTime) := rfl
+@[simp] theorem lt_def (d₁ d₂ : DateTime p L Z) : (d₁ < d₂) = (d₁.toNaiveDateTime < d₂.toNaiveDateTime) := rfl
 
-instance instDecidableLEDateTime (d₁ d₂ : DateTime p L Z) : Decidable (d₁ <= d₂) := inferInstanceAs (Decidable (d₁.toNaiveDateTime <= d₂.toNaiveDateTime))
-instance instDecidableLTDateTime (d₁ d₂ : DateTime p L Z) : Decidable (d₁ < d₂) := inferInstanceAs (Decidable <| d₁.toNaiveDateTime < d₂.toNaiveDateTime)
+instance instDecidableLE (d₁ d₂ : DateTime p L Z) : Decidable (d₁ <= d₂) := inferInstanceAs (Decidable (d₁.toNaiveDateTime <= d₂.toNaiveDateTime))
+instance instDecidableLT (d₁ d₂ : DateTime p L Z) : Decidable (d₁ < d₂) := inferInstanceAs (Decidable <| d₁.toNaiveDateTime < d₂.toNaiveDateTime)
 
 instance : LinearOrder (DateTime p L Z) where
   le_refl (a) := le_refl a.toNaiveDateTime
@@ -68,91 +70,61 @@ instance : HAdd (DateTime p L Z) (SignedDuration p) (DateTime p L Z) where
 instance : HAdd (SignedDuration p) (DateTime p L Z) (DateTime p L Z)  where
   hAdd du da := da + du
 
-theorem DateTime.hAdd_signed_def (d : DateTime p L Z) (dur : (SignedDuration p)) : d + dur = ⟨d.toNaiveDateTime + dur⟩ := rfl
-theorem DateTime.hAdd_signed_def_rev (d : DateTime p L Z) (dur : (SignedDuration p)) : dur + d = ⟨dur + d.toNaiveDateTime⟩ := rfl
+theorem hAdd_signed_def (d : DateTime p L Z) (dur : SignedDuration p) : d + dur = ⟨d.toNaiveDateTime + dur⟩ := rfl
+theorem hAdd_signed_comm (d : DateTime p L Z) (dur : SignedDuration p) : dur + d = d + dur := by
+  simp only [instHAddSignedDurationDateTime]
 
 instance : HSub (DateTime p L Z) (SignedDuration p) (DateTime p L Z) where
   hSub d dur := d + -dur
 
-theorem DateTime.hSub_signed_def (d : DateTime p L Z) (dur : (SignedDuration p)) : d - dur = d + -dur := rfl
+theorem hSub_signed_def (d : DateTime p L Z) (dur : (SignedDuration p)) : d - dur = d + -dur := rfl
 
-theorem DateTime.hAdd_signed_assoc (d : DateTime p L Z) (dur₁ dur₂ : (SignedDuration p)) : d + dur₁ + dur₂ = d + (dur₁ + dur₂) := by
-  simp [DateTime.hAdd_signed_def, NaiveDateTime.hAdd_signed_def]
-  exact Int.add_assoc _ _ _
+theorem hAdd_signed_assoc (d : DateTime p L Z) (dur₁ dur₂ : (SignedDuration p)) : d + dur₁ + dur₂ = d + (dur₁ + dur₂) := by
+  simp only [hAdd_signed_def, NaiveDateTime.hAdd_signed_def, mk.injEq, NaiveDateTime.mk.injEq]
+  exact add_assoc d.toSignedDuration dur₁ dur₂
 
-theorem DateTime.hAdd_signed_comm (d : DateTime p L Z) (dur : (SignedDuration p)) : d + dur = dur + d := by
-  simp [DateTime.hAdd_signed_def, NaiveDateTime.hAdd_signed_def, DateTime.hAdd_signed_def_rev, NaiveDateTime.hAdd_signed_def_rev]
 
-def DateTime.simultaneous (d₁ d₂ : DateTime p L Z) : Prop :=
+def simultaneous (d₁ d₂ : DateTime p L Z) : Prop :=
   d₁.toNaiveDateTime = d₂.toNaiveDateTime
 
-def DateTime.convertLossless {p' : NegSiPow} (d : DateTime p L Z) (h : p' <= p := by decide) : DateTime p' L Z :=
+def hetLe {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) : Prop :=
+  d1.toNaiveDateTime.le_het d2.toNaiveDateTime
+
+def DateTime.simultaneous_het (d₁ : DateTime p L Z)  (d₂ : DateTime p2 L2 Z2) : Prop :=
+  d₁.hetLe d₂ ∧ d₂.hetLe d₁
+
+def DateTime.convertLossless {p' : Int} (d : DateTime p L Z) (h : p' <= p := by decide) : DateTime p' L Z :=
   ⟨d.toNaiveDateTime.convertLossless h⟩
 
-structure HDateTime where
-  precision : NegSiPow
-  leap : LeapSeconds
-  zone : TimeZone
-  val: DateTime precision leap zone
+theorem hetLe_iff {p : Int} (d1 : DateTime p L Z) (d2 : DateTime p L2 Z2) : hetLe d1 d2 ↔ d1.toNaiveDateTime <= d2.toNaiveDateTime :=
+  NaiveDateTime.le_het_iff d1.toNaiveDateTime d2.toNaiveDateTime
 
-section HDateTime
+def hetLt {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) : Prop :=
+  d1.toNaiveDateTime.lt_het d2.toNaiveDateTime
 
-variable (t : HDateTime) {dp : Int}
+theorem hetLt_iff {p : Int} (d1 d2 : DateTime p L Z) : hetLt d1 d2 ↔ d1.toNaiveDateTime < d2.toNaiveDateTime :=
+  NaiveDateTime.lt_het_iff d1.toNaiveDateTime d2.toNaiveDateTime
 
+instance instDecidableLEHet {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) :
+  Decidable (hetLe d1 d2) := inferInstanceAs <| Decidable <| d1.toSignedDuration.le_het d2.toSignedDuration
 
-@[reducible]
-def HDateTime.toNaiveLossless {p': NegSiPow} (d : HDateTime) (h : p' <= d.precision): NaiveDateTime p' :=
-  d.val.toNaiveDateTime.convertLossless h
+instance instDecidableLTHet {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) :
+  Decidable (hetLt d1 d2)
+:= inferInstanceAs <| Decidable <| d1.toSignedDuration.lt_het d2.toSignedDuration
 
-@[reducible]
-def HDateTime.convertLossless {p': NegSiPow} (d : HDateTime) (h : p' <= d.precision) : { d' // (d' : HDateTime).precision = p' } :=
-  let out := {
-    precision := p'
-    leap := d.leap
-    zone := d.zone
-    val := ⟨d.toNaiveLossless h⟩
-  }
-  ⟨out, by simp⟩
+theorem hetLe_trans {p1 p2 p3: Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) (d3 : DateTime p3 L3 Z3)
+  : hetLe d1 d2 → hetLe d2 d3 → hetLe d1 d3 :=
+  NaiveDateTime.le_het_trans d1.toNaiveDateTime d2.toNaiveDateTime d3.toNaiveDateTime
 
-@[reducible]
-def HDateTime.toNaiveLosslessMixed {p' : Int} (d : HDateTime) : NaiveDateTime (minLeft d.precision p') :=
-  d.val.toNaiveDateTime.convertLossless (fine := minLeft d.precision p') (coarse := d.precision) (minLeft_le _ _)
+theorem hetLt_iff_hetLe_not_hetLe {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2)
+  : hetLt d1 d2 ↔ hetLe d1 d2 ∧ ¬(hetLe d2 d1) :=
+  SignedDuration.lt_het_iff_le_het_not_le_het d1.toSignedDuration d2.toSignedDuration
 
+def hetOccursBeforeStrict {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) : Prop :=
+  d1.hetLt d2
 
-@[reducible]
-def HDateTime.simultaneous : HDateTime → HDateTime → Prop
-| ⟨p₁, _, _, ⟨naive₁⟩⟩, ⟨p₂, _, _, ⟨naive₂⟩⟩ =>
-  (naive₁.convertLossless (min_le_left p₁ p₂)) = (naive₂.convertLossless (min_le_right p₁ p₂))
+def hetWallClockLessThan {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) : Prop :=
+  d1.hetLt d2
 
-/--
-LT compares the underlying naive DateTime.
--/
-instance : LT HDateTime where
-  lt a b :=
-    (a.toNaiveLossless (min_le_left a.precision b.precision))
-    < (b.toNaiveLossless (min_le_right a.precision b.precision))
-
-/--
-LE compares the underlying naive DateTime
--/
-instance : LE HDateTime where
-  le a b :=
-    (a.toNaiveLossless (min_le_left a.precision b.precision))
-    <= (b.toNaiveLossless (min_le_right a.precision b.precision))
-
-
-@[simp] theorem HDateTime.le_def (d₁ d₂ : HDateTime) :
-  (d₁ <= d₂) = ((d₁.toNaiveLossless (min_le_left d₁.precision d₂.precision)) <= (d₂.toNaiveLossless (min_le_right d₁.precision d₂.precision))) := rfl
-
-@[simp] theorem HDateTime.lt_def (d₁ d₂ : HDateTime) :
-  (d₁ < d₂) =
-  (d₁.toNaiveLossless (min_le_left d₁.precision d₂.precision)
-  < (d₂.toNaiveLossless (min_le_right d₁.precision d₂.precision))) := rfl
-
-instance instDecidableLTHDateTime (a b : HDateTime) : Decidable (a < b) :=
-  inferInstanceAs <| Decidable <|
-    a.toNaiveLossless (min_le_left a.precision b.precision) < b.toNaiveLossless (min_le_right a.precision b.precision)
-
-instance instDecidableLEHDateTime (a b : HDateTime) : Decidable (a <= b) :=
-  inferInstanceAs <| Decidable <|
-    a.toNaiveLossless (min_le_left a.precision b.precision) <= b.toNaiveLossless (min_le_right a.precision b.precision)
+end DateTime_section
+end DateTime
