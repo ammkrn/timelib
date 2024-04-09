@@ -17,7 +17,7 @@ def ScalarDate.newYear (year : Year) : ScalarDate := firstOfTheMonth year 1
 The date of the first k-day (day of the week) on or before the passed date.
 E.g. the first Monday on or before January 13, 2022 = January 10, 2022.
 -/
-def ScalarDate.kDayOnOrBefore (k : Nat) (h : k < 7 := by decide) : ScalarDate → ScalarDate
+def ScalarDate.kDayOnOrBefore (k : Nat) (_ : k < 7 := by decide) : ScalarDate → ScalarDate
 | ⟨day⟩ => ⟨day - (day - k).rataDie⟩
 
 theorem ScalarDate.kDayOnOrBefore_preserves (k : Nat) (h : k < 7) (d : ScalarDate) :

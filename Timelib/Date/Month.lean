@@ -4,7 +4,6 @@ import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
-import Mathlib.Tactic.LibrarySearch
 import Mathlib.Tactic.SimpRw
 import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
@@ -112,7 +111,7 @@ instance : LinearOrder Month where
 
 instance : Ord Month := ⟨fun m₁ m₂ => compareOfLessAndEq m₁ m₂⟩
 
-@[reducible] def Month.numDays (year : Year) : ∀ (month : Month), Nat
+@[reducible] def Month.numDays (year : Year) : Month → Nat
 | february => if year.isLeapYear then 29 else 28
 | april => 30
 | june => 30
@@ -129,8 +128,8 @@ theorem Month.numDays_pos (month : Month) (year : Year) : 0 < month.numDays year
 theorem Month.numDays_lt_numDaysInGregorianYear (month : Month) (year : Year) : month.numDays year < year.numDaysInGregorianYear := by
   simp only [Month.numDays, Year.numDaysInGregorianYear]
   by_cases hy : year.isLeapYear
-  case pos => split <;> simp [hy, if_true] <;> decide
-  case neg => split <;> simp [hy, if_false] <;> decide
+  case pos => split <;> simp [hy, if_true]
+  case neg => split <;> simp [hy, if_false]
 
 theorem Month.numDays_lt_31 (month : Month) (year : Year) : month.numDays year <= 31 := by
   simp only [Month.numDays, Year.numDaysInGregorianYear]
