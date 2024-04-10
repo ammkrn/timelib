@@ -194,7 +194,8 @@ def ScalarDate.toOrdinalDateYear (d : ScalarDate) : Year :=
   let isLastDayOfLeapYear := num100YearGroups = 4 ∨ numSingleYears = 4
   Year.mk (yearsFrom400Groups + yearsFrom100Groups + yearsFrom4Groups + numSingleYears + (if isLastDayOfLeapYear then 0 else 1))
 
-example (a b : ℤ) (h: a ≤ b) (h0 : 0 < b): a % b < b:= by exact Int.emod_lt_of_pos a h0
+example (a b : ℤ) (_h: a ≤ b) (h0 : 0 < b): a % b < b:= by
+  exact Int.emod_lt_of_pos a h0
 
 theorem ScalarDate.toOrdinalDateYear_leap (d : ScalarDate) :
   d.toOrdinalDateYearIsLastDayOfLeapYear → d.toOrdinalDateYear.isLeapYear := by
@@ -232,8 +233,8 @@ theorem ScalarDate.toOrdinalDateYear_leap (d : ScalarDate) :
       rw [add_assoc]
       simp
       intro hf
-      have hdiv_nonneg : 0 ≤ (Int.fmod (d.day - 1) 146097) % 36524 / 1461 :=
-        sorry
+      have hdiv_nonneg : 0 ≤ (Int.fmod (d.day - 1) 146097) % 36524 / 1461 := by
+        omega
         --Int.div_nonneg (Int.mod_nonneg _ (by decide)) (le_of_lt pos1461)
       have hlt_100 : ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 * 4 + 4 < 100 := by
         apply Int.add_lt_of_lt_sub_right
@@ -304,17 +305,27 @@ def ScalarDate.toOrdinalDate (d : ScalarDate) : OrdinalDate :=
   let yearsFrom4Groups := num4YearGroups * 4
   let isLastDayOfLeapYear := num100YearGroups = 4 ∨ numSingleYears = 4
   /- Add one iff it's not the last day of a leap year. If it is the last day of a leap year, withhold that additional year. -/
-  let year := Year.mk (yearsFrom400Groups + yearsFrom100Groups + yearsFrom4Groups + numSingleYears + (if isLastDayOfLeapYear then 0 else 1))
+  let year :=
+    yearsFrom400Groups
+    + yearsFrom100Groups
+    + yearsFrom4Groups
+    + numSingleYears
+    + (if isLastDayOfLeapYear then 0 else 1)
+    |> Year.mk
   let day := if isLastDayOfLeapYear then 366 else ((singlesGroupDays.fmod 365) + 1)
 
   have h_day_ge_one : 1 <= day.toNat := by
-    --by_cases hleap : isLastDayOfLeapYear <;> simp [hleap]
-    --case neg =>
-    --  refine toOrdinalDate_helper1 ?hle
-    --  refine' Int.le_add_of_sub_right_le _
-    --  norm_num
-    --  refine' (Int.emod_nonneg _ (ne_of_lt pos365).symm)
-    sorry
+    simp [day]
+    split
+    · decide
+    · apply (Int.le_toNat _).mpr
+      · simp
+        apply Int.fmod_nonneg
+        simp [singlesGroupDays, Int.emod_nonneg]
+        decide
+      · apply Int.le_add_one
+        simp [singlesGroupDays, Int.emod_nonneg]
+
   have hle' : Int.toNat day ≤ Year.numDaysInGregorianYear year := by
     by_cases hleap : isLastDayOfLeapYear <;> simp [hleap]
     -- If it is the last day of a leap year

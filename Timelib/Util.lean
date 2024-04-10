@@ -70,8 +70,13 @@ theorem Int.of_nat_nonneg (n : ℕ) : 0 ≤ Int.ofNat n := by
 --@[simp]
 --theorem Int.mul_div_cancel (a : ℤ) {b : ℤ} (H : b ≠ 0) : a * b / b = a := sorry
 
-theorem int.div_add_mod' (m k : ℤ) : m / k * k + m % k = m :=
-  sorry
+/-- # TODO
+
+- just an abbrev of `Int.ediv_add_emod'`;
+- not used anywhere.
+-/
+abbrev int.div_add_mod' : ∀ (m k : ℤ), m / k * k + m % k = m :=
+  Int.ediv_add_emod'
 
 theorem Int.div_eq_zero_of_lt' {a b : ℤ} (H1 : 0 ≤ a) (H2 : a < b) : a / b = 0
 := by
@@ -241,7 +246,9 @@ theorem Int.neg_succ_monotone_rev {x y : Nat} : Int.negSucc x <= Int.negSucc y �
   rw [h2] at h4
   cases h4
 
-theorem Int.fdiv_le_div_right {n₁ n₂ de : Int} (h : n₁ <= n₂) (hde : 0 <= de) : n₁.fdiv de <= n₂.fdiv de := by
+theorem Int.fdiv_le_div_right {n₁ n₂ de : Int} (h : n₁ <= n₂) (hde : 0 <= de) :
+  n₁.fdiv de <= n₂.fdiv de
+:= by
   simp [Int.fdiv]
   split
   next =>
@@ -255,13 +262,12 @@ theorem Int.fdiv_le_div_right {n₁ n₂ de : Int} (h : n₁ <= n₂) (hde : 0 <
     · apply Int.ofNat_le.mpr; simp
   next a _ =>
     split
-    · apply Int.ofNat_le.mpr; simp [Nat.eq_zero_of_le_zero (Int.ofNat_le.mp h)]
-    · next s _ r =>
+    · apply Int.ofNat_le.mpr
+      simp [Nat.eq_zero_of_le_zero (Int.ofNat_le.mp h)]
+    · next s blah r =>
       simp [(show a = s by cases r; rfl)]
-      have has : s = a := by cases r; rfl
-      have :=  Nat.div_le_div_right' (Int.ofNat_le.mp h) (k := s)
-      -- simp [has, this]
-      sorry
+      apply Int.ofNat_le.mpr
+      exact Nat.div_le_div_right' (Int.ofNat_le.mp h) (k := s)
     · next r => cases r
     repeat exact (absurd h (Int.not_of_nat_le_neg_succ _ _))
   next => cases hde
@@ -275,7 +281,7 @@ theorem Int.fdiv_le_div_right {n₁ n₂ de : Int} (h : n₁ <= n₂) (hde : 0 <
   next a b =>
     split
     next => exact le_of_lt (Int.negSucc_lt_zero (a / b.succ))
-    next s t => exact le_trans (le_of_lt (Int.negSucc_lt_zero _)) (Int.ofNat_zero_le (_ / _))
+    next s _t => exact le_trans (le_of_lt (Int.negSucc_lt_zero _)) (Int.ofNat_zero_le (_ / _))
     next t => cases t
     next => exact le_of_lt (Int.negSucc_lt_zero (a / b.succ))
     next s t =>
@@ -294,24 +300,42 @@ theorem Int.toNat_le_of_le_of_nonneg : ∀ {x : Int} {y : Nat}, 0 <= x → x <= 
   simp [Int.toNat, h2]
 | .negSucc _, _, h1, _h2 => by cases h1
 
-theorem Int.div_le_of_le_mul {a b c : ℤ} (H : 0 < c) (H' : a ≤ b * c) : a / c ≤ b := sorry
-theorem Int.div_lt_of_lt_mul {a b c : ℤ} (H : 0 < c) (H' : a < b * c) : a / c < b := sorry
-theorem Int.mul_lt_of_lt_div {a b c : ℤ} (H : 0 < c) (H3 : a < b / c) : a * c < b := sorry
-theorem Int.lt_mul_of_div_lt {a b c : ℤ} (H1 : 0 < c) (H2 : a / c < b) : a < b * c := sorry
+theorem Int.div_le_of_le_mul : ∀ {a b c : ℤ}, 0 < c → a ≤ b * c → a / c ≤ b :=
+  Int.ediv_le_of_le_mul
+theorem Int.div_lt_of_lt_mul {a b c : ℤ} (H : 0 < c) (H' : a < b * c) : a / c < b :=
+  Int.ediv_lt_iff_lt_mul H |>.mpr H'
+theorem Int.mul_lt_of_lt_div : ∀ {a b c : ℤ}, 0 < c → a < b / c → a * c < b :=
+  Int.mul_lt_of_lt_ediv
+theorem Int.lt_mul_of_div_lt {a b c : ℤ} (H : 0 < c) (H' : a / c < b) : a < b * c :=
+  Int.ediv_lt_iff_lt_mul H |>.mp H'
 
-theorem Int.mul_le_of_le_div {a b c : Int} (H1 : 0 < c) (H2 : a ≤ b / c) : a * c ≤ b := sorry
+theorem Int.mul_le_of_le_div {a b c : Int} (H1 : 0 < c) (H2 : a ≤ b / c) : a * c ≤ b :=
+  Int.le_ediv_iff_mul_le H1 |>.mp H2
 
-theorem Int.mul_le_of_le_fdiv {n d q : Int} (hn : 0 <= n) (hd : 0 < d) (hq : 0 < q) (h : n.fdiv d = q) : q * d <= n := by
+theorem Int.mul_le_of_le_fdiv
+  {n d q : Int} (hn : 0 <= n) (hd : 0 < d) (_hq : 0 < q) (h : n.fdiv d = q)
+: q * d <= n := by
   simp [fdiv_pos_eq_div hn (le_of_lt hd)] at h
   exact Int.mul_le_of_le_div hd (le_of_eq h.symm)
 
-@[simp] theorem Int.add_mod_self {a b : Int} : (a + b) % b = a % b := sorry
+/-- # TODO
+
+Alias for `Int.add_mod_self`, which is already `@[simp]`.
+-/
+@[simp] theorem Int.add_mod_self {a b : Int} : (a + b) % b = a % b :=
+  Int.add_emod_self
 
 --@[simp] theorem Int.mul_mod_left (a b : Int) : a * b % b = 0 := sorry
 
-@[simp] theorem Int.mul_mod (a b n : Int) : a * b % n = a % n * (b % n) % n := sorry
+@[simp] theorem Int.mul_mod (a b n : Int) : a * b % n = a % n * (b % n) % n :=
+  Int.mul_emod a b n
 
-@[simp] theorem Int.add_mul_mod_self {a b c : ℤ} : (a + b * c) % c = a % c := sorry
+/-- # TODO
+
+Alias for `Int.add_mul_emod_self`, which is already `@[simp]`.
+-/
+@[simp] theorem Int.add_mul_mod_self {a b c : ℤ} : (a + b * c) % c = a % c :=
+  Int.add_mul_emod_self
 
 --@[simp] theorem Int.mod_eq_zero_lemma (a b c m : Int) : (((a * m) + (b * m)) + c * m) % m = 0 := by simp
 
@@ -330,8 +354,9 @@ theorem Int.add_pos_ne_zero_of_nonneg {a b : Int} (h : 0 <= a) (h' : 0 < b) : a 
   exact False.elim $ lt_irrefl _ h'
 
 theorem Int.div_mod_unique {a b r q : ℤ} (h : 0 < b) :
-  a / b = q ∧ a % b = r ↔ r + b * q = a ∧ 0 ≤ r ∧ r < b :=
-    sorry
+  a / b = q ∧ a % b = r ↔ r + b * q = a ∧ 0 ≤ r ∧ r < b
+:=
+  Int.ediv_emod_unique h
 
 theorem Int.div_pigeonhole {x lower c : Int} (_hx : 0 <= x) (_hlower : 0 < lower) (hc : 0 < c) : c * lower < x → x < c * (lower + 1) → (x / c) = lower := fun h1 h2 => by
   rw [mul_comm] at h2
