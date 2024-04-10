@@ -9,7 +9,7 @@ package Timelib where
 lean_lib Timelib
 
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4.git"@"bbf2206016a67e7d54812dcf76f830c704df378c"
+  "https://github.com/leanprover-community/mathlib4.git"@"stable"
 
 -- @ 58f072
 --require mathlib from ".."/"Mathlib4"

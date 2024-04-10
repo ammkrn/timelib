@@ -14,7 +14,7 @@ namespace DateTime
 instance instDefault {p : Int} {isLe : p <= 0} {L : LeapSeconds} {Z : TimeZone} : Inhabited (DateTime p L Z) where
   default := ⟨Inhabited.default, isLe⟩
 
-def DateTime.changeLeapSeconds
+def changeLeapSeconds
   {p : Int}
   {L : LeapSeconds}
   {Z : TimeZone}
@@ -23,7 +23,7 @@ def DateTime.changeLeapSeconds
   DateTime p L' Z :=
   ⟨d.toNaiveDateTime⟩
 
-def DateTime.changeTimeZone
+def changeTimeZone
   {p : Int}
   {L : LeapSeconds}
   {Z : TimeZone}
@@ -90,10 +90,10 @@ def simultaneous (d₁ d₂ : DateTime p L Z) : Prop :=
 def hetLe {p1 p2 : Int} (d1 : DateTime p1 L Z) (d2 : DateTime p2 L2 Z2) : Prop :=
   d1.toNaiveDateTime.le_het d2.toNaiveDateTime
 
-def DateTime.simultaneous_het (d₁ : DateTime p L Z)  (d₂ : DateTime p2 L2 Z2) : Prop :=
+def simultaneous_het (d₁ : DateTime p L Z)  (d₂ : DateTime p2 L2 Z2) : Prop :=
   d₁.hetLe d₂ ∧ d₂.hetLe d₁
 
-def DateTime.convertLossless {p' : Int} (d : DateTime p L Z) (h : p' <= p := by decide) : DateTime p' L Z :=
+def convertLossless {p' : Int} (d : DateTime p L Z) (h : p' <= p := by decide) : DateTime p' L Z :=
   ⟨d.toNaiveDateTime.convertLossless h⟩
 
 theorem hetLe_iff {p : Int} (d1 : DateTime p L Z) (d2 : DateTime p L2 Z2) : hetLe d1 d2 ↔ d1.toNaiveDateTime <= d2.toNaiveDateTime :=

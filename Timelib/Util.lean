@@ -93,7 +93,7 @@ theorem Int.fmod_nonneg_of_pos_mod : ∀ (x : Int) {m : Int}, (h : 0 < m) → 0 
 | _, Int.ofNat 0, hm => by cases hm; done
 | Int.ofNat 0, Int.ofNat (_m+1), _hm => by simp [Int.fmod]
 | Int.ofNat (x+1), Int.ofNat (m+1), _hm => by
-  simp [Int.fmod, -Int.ofNat_eq_cast]
+  simp only [Int.fmod]
   apply Int.ofNat_zero_le
 | Int.negSucc xNat, Int.ofNat (mNat+1), hm => by
   refine' fmod_nonneg' _ hm
@@ -104,7 +104,7 @@ theorem Int.fdiv_pos_eq_div : ∀ {a b : Int}, 0 <= a → 0 <= b → Int.fdiv a 
 | .negSucc _, _, ha, _hb => by cases ha
 | _, .negSucc _, _ha, hb => by cases hb
 | .ofNat (a_n + 1), .ofNat b_n, _ha, _hb => by
-  simp [Int.fdiv, -Int.ofNat_eq_cast]
+  simp [Int.fdiv]
 
 @[simp]
 theorem Int.fmod_pos_eq_mod : ∀ {a b : Int}, 0 <= a → 0 <= b → a.fmod b = a % b
@@ -112,7 +112,7 @@ theorem Int.fmod_pos_eq_mod : ∀ {a b : Int}, 0 <= a → 0 <= b → a.fmod b = 
 | .negSucc _, _, ha, _hb => by cases ha
 | _, .negSucc _, _ha, hb => by cases hb
 | .ofNat (a_n + 1), .ofNat b_n, _ha, _hb => by
-  simp [Int.fmod, -Int.ofNat_eq_cast]
+  simp [Int.fmod]
 
 @[simp]
 theorem Int.fmod_fmod_eq (a : Int) {m₀ m₁ : Int} (h : 0 < m₀) (h' : 0 <= m₁) :
@@ -219,7 +219,7 @@ theorem Int.not_of_nat_le_neg_succ (a b : Nat) : ¬(Int.ofNat a <= Int.negSucc b
 theorem Int.neg_succ_monotone {x y : Nat} (h : x >= y) : Int.negSucc x <= Int.negSucc y := by
   simp [Int.le_def, Int.nonneg_def, Int.sub_eq_add_neg]
   have h0 : - negSucc x = (x.succ) := PLift.down_up (- negSucc x)
-  simp [h0, -Int.ofNat_eq_cast]
+  simp [h0]
   refine Exists.intro ((x + 1) - (y + 1)) ?h
   have h1 : negSucc y + ((↑x) +1) = subNatNat (x+1) (Nat.succ y) := Int.negSucc_add_ofNat y (x + 1)
   simp only [h1]
@@ -289,10 +289,10 @@ theorem Int.add_right_nonneg {x n : Int} (h : 0 <= x) (h' : 0 <= n) : 0 <= x + n
   Int.add_nonneg h h'
 
 theorem Int.toNat_le_of_le_of_nonneg : ∀ {x : Int} {y : Nat}, 0 <= x → x <= y → x.toNat <= y
-| .ofNat n, y, h1, h2 => by
-  simp [Int.ofNat_eq_cast] at h2
+| .ofNat n, y, _h1, h2 => by
+  simp at h2
   simp [Int.toNat, h2]
-| .negSucc _, _, h1, h2 => by cases h1
+| .negSucc _, _, h1, _h2 => by cases h1
 
 theorem Int.div_le_of_le_mul {a b c : ℤ} (H : 0 < c) (H' : a ≤ b * c) : a / c ≤ b := sorry
 theorem Int.div_lt_of_lt_mul {a b c : ℤ} (H : 0 < c) (H' : a < b * c) : a / c < b := sorry
