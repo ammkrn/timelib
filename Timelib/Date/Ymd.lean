@@ -11,6 +11,10 @@ import Timelib.Date.Month
 
 open Lean
 
+
+
+namespace Timelib
+
 structure Ymd where
   year : Year
   month : Month

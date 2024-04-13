@@ -9,6 +9,10 @@ import Mathlib.Init.Data.Int.Order
 
 open Lean
 
+
+
+namespace Timelib
+
 structure ScalarDate where
   day : Int
 deriving Repr, ToJson, FromJson
@@ -43,7 +47,9 @@ instance : LinearOrder ScalarDate where
 
 instance : Ord ScalarDate := ⟨fun d₁ d₂ => compareOfLessAndEq d₁ d₂⟩
 
-def Int.rataDie (scalarScalarDate : Int) : Int := Int.fmod scalarScalarDate 7
+/-- Augments lean's `Int` namespace directly for convenience. -/
+def _root_.Int.rataDie (scalarScalarDate : Int) : Int :=
+  Int.fmod scalarScalarDate 7
 
 @[reducible, simp]
 abbrev ScalarDate.dayOfWeek (d : ScalarDate) : Int := d.day.rataDie

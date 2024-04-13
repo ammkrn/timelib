@@ -3,7 +3,7 @@ import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
-import Mathlib.Tactic.LibrarySearch
+-- import Mathlib.Tactic.LibrarySearch
 import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
 import Timelib.Date.Year
@@ -14,6 +14,10 @@ import Timelib.Date.Ymd
 import Timelib.Date.Convert
 import Timelib.Util
 import Timelib.Date.Lemmas.YmdOrdinalEquiv
+
+
+
+namespace Timelib
 
 instance : Equiv Ymd OrdinalDate where
   toFun := Ymd.toOrdinalDate

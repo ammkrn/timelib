@@ -1,3 +1,5 @@
+namespace Timelib
+
 /-
 A two's complement representation of signed integers, implemented as a struct pulling back
 on the prelude's signed integer types. For example, the relationship between
@@ -422,15 +424,15 @@ instance (a b : Int64) : Decidable (a < b) :=
 /-
 sameSign a b ∧ differentSign a out
 -/
-def Int64.wrappingAdd (a b : Int64) : (Bool × Int64) := 
+def Int64.wrappingAdd (a b : Int64) : (Bool × Int64) :=
   let sum := a + b
   let oob :=
-    if a.isPositive 
-    then 
+    if a.isPositive
+    then
       if b.isPositive
       then sum.isNegative
       else false
-    else 
+    else
       if b.isNegative
       then sum.isPositive
       else false

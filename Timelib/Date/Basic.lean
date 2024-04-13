@@ -5,6 +5,10 @@ import Timelib.Date.OrdinalDate
 import Timelib.Date.Ymd
 import Timelib.Date.Convert
 
+
+
+namespace Timelib
+
 def ScalarDate.firstOfTheMonth (year : Year) (m : Month) : ScalarDate :=
   Ymd.toScalarDate ⟨year, m, 1, le_refl _, Month.numDays_pos _ _⟩
 
@@ -44,7 +48,10 @@ def ScalarDate.kDayAfter (k : Nat) (d : ScalarDate) (h : k < 7 := by decide) : S
 If n > 0, the date of the nth k-day on or after the date.
 If n < 0, counts backwards, returning the nth k-day on or before the date.
 -/
-def ScalarDate.nthKDay (n : Int) (k : Nat) (d : ScalarDate) (hk : k < 7 := by decide) (hn : n ≠ 0 := by decide) : ScalarDate :=
+def ScalarDate.nthKDay
+  (n : Int) (k : Nat) (d : ScalarDate)
+  (hk : k < 7 := by decide) (_hn : n ≠ 0 := by decide)
+: ScalarDate :=
   if n > 0
   then ⟨7 * n + (d.kDayBefore k hk).day⟩
   else ⟨7 * n + (d.kDayAfter k hk).day⟩

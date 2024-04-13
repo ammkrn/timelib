@@ -11,10 +11,14 @@ import Timelib.Date.Year
 
 open Lean
 
-/-
-This ends up being easier to use than a Nat restricted to `1 <= n <= 12`,
-because we can define functions using the recursor without having to discharge
-the edge cases of 0 and n > 12
+
+
+namespace Timelib
+
+/-- Enumerates the month of a year.
+
+This ends up being easier to use than a `Nat` restricted to `1 ≤ n ≤ 12`, because we can define
+functions using the recursor without having to discharge the edge cases of `0` and `n > 12`.
 -/
 inductive Month
 | january

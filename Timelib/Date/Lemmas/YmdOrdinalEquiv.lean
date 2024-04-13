@@ -3,7 +3,7 @@ import Mathlib.Init.Order.Defs
 import Mathlib.Init.Data.Nat.Basic
 import Mathlib.Init.Data.Nat.Lemmas
 import Mathlib.Init.Data.Int.Basic
-import Mathlib.Tactic.LibrarySearch
+-- import Mathlib.Tactic.LibrarySearch
 import Mathlib.Logic.Equiv.Basic
 import Mathlib.Init.Data.Int.Order
 import Timelib.Date.Year
@@ -14,21 +14,24 @@ import Timelib.Date.Ymd
 import Timelib.Date.Convert
 import Timelib.Util
 
+
+
+namespace Timelib
+
 /--
 Proof that `Ymd` and `Ordinal` are Equivalent using their respective conversion functions
 `Ymd.toOrdinalDate` and `OrdinalDate.toYmd`
 -/
 
-theorem Ymd.is_january_month {ymd : Ymd} (h_is_month_day : (ymd.toOrdinalDate).isJanuaryDay) : ymd.month = Month.january := by
-  simp only [Ymd.toOrdinalDate]
-  by_cases hLeap : ymd.year.isLeapYear <;>
-    (simp_arith [hLeap, OrdinalDate.isJanuaryDay] at h_is_month_day
-     simp only [Ymd.toOrdinalDate] at h_is_month_day
-     simp only [hLeap]
-     split at h_is_month_day <;> (simp (config := { arith := true }) at *; try assumption)
-     case _ hM =>
-       simp_arith [hM] at h_is_month_day
-       exact False.elim ((show ¬0 >= 1 by decide) (h_is_month_day ▸ ymd.dayGe)))
+theorem Ymd.is_january_month {ymd : Ymd} :
+  (ymd.toOrdinalDate).isJanuaryDay → ymd.month = Month.january
+:= by
+  cases ymd ; case mk y m d h h' =>
+  simp [Ymd.toOrdinalDate]
+  split <;> simp_arith [h]
+  cases d with
+  | zero => contradiction
+  | succ _ => simp
 
 theorem Ymd.is_february_month {ymd : Ymd} (h_is_month_day : ymd.toOrdinalDate.isFebruaryDay) : ymd.month = Month.february := by
   simp only [Ymd.toOrdinalDate]
@@ -506,4 +509,3 @@ theorem Ymd.toOrdinalDate_left_inv (ymd : Ymd) : ymd.toOrdinalDate.toYmd = ymd :
                              simp [OrdinalDate.isDecemberDay, hLeap]
                              exact Nat.gt_of_not_le hNov
                            apply Ymd.eq_of_val_eq <;> simp [Ymd.toOrdinalDate, (Ymd.is_december_month h_is_month_day), hLeap, Nat.add_sub_cancel])
-

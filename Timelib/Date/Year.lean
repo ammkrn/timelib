@@ -11,6 +11,10 @@ import Mathlib.Init.Data.Int.Order
 
 open Lean
 
+
+
+namespace Timelib
+
 /--
 A year in the proleptic gregorian calendar
 -/
@@ -33,10 +37,10 @@ theorem Year.lt_def {y₁ y₂ : Year} : (y₁ < y₂) = (y₁.val < y₂.val) :
 instance instDecidableLEYear (y₁ y₂ : Year) : Decidable (y₁ <= y₂) := inferInstanceAs (Decidable (y₁.val <= y₂.val))
 instance instDecidableLTYear (y₁ y₂ : Year) : Decidable (y₁ < y₂) := inferInstanceAs (Decidable (y₁.val < y₂.val))
 
-theorem Year.val_eq_of_eq : ∀ {y₁ y₂ : Year} (h : y₁ = y₂), y₁.val = y₂.val
+theorem Year.val_eq_of_eq : ∀ {y₁ y₂ : Year} (_h : y₁ = y₂), y₁.val = y₂.val
 | ⟨_⟩, _, rfl => rfl
 
-theorem Year.eq_of_val_eq : ∀ {y₁ y₂ : Year} (h : y₁.val = y₂.val), y₁ = y₂
+theorem Year.eq_of_val_eq : ∀ {y₁ y₂ : Year} (_h : y₁.val = y₂.val), y₁ = y₂
 | ⟨_⟩, _, rfl => rfl
 
 instance : LinearOrder Year where
@@ -73,6 +77,10 @@ leap years, but the years 1600 and 2000 are."
 -/
 @[reducible]
 abbrev Year.isLeapYear (y : Year) : Prop := (y.val % 4 = 0 ∧ y.val % 100 ≠ 0) ∨ (y.val % 400 = 0)
+
+instance Year.instDecidable_isLeapYear (y : Year) : Decidable y.isLeapYear := by
+  simp [isLeapYear]
+  exact inferInstance
 
 @[reducible] abbrev Year.numDaysInGregorianYear (y : Year) : Nat := 365 + (if y.isLeapYear then 1 else 0)
 

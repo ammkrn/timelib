@@ -15,6 +15,10 @@ import Timelib.Util
 
 open Lean
 
+
+
+namespace Timelib
+
 theorem Year.lastDayFebruary_eq (y : Year) : y.lastDayFebruary = Month.february.numDays y + Year.lastDayJanuary := by
   by_cases h: y.isLeapYear <;> simp [h,  Month.numDays]
 
