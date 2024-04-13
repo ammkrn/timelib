@@ -48,7 +48,7 @@ instance : LinearOrder ScalarDate where
 instance : Ord ScalarDate := ⟨fun d₁ d₂ => compareOfLessAndEq d₁ d₂⟩
 
 /-- Augments lean's `Int` namespace directly for convenience. -/
-def _root_.Int.rataDie (scalarScalarDate : Int) : Int :=
+protected def _root_.Int.rataDie (scalarScalarDate : Int) : Int :=
   Int.fmod scalarScalarDate 7
 
 @[reducible, simp]
