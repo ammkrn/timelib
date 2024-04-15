@@ -1,4 +1,3 @@
-
 import Timelib.Util
 import Timelib.Date.ScalarDate
 import Timelib.Date.Convert
@@ -8,17 +7,19 @@ import Mathlib.Order.WithBot
 import Mathlib.Algebra.CharZero.Lemmas
 import Mathlib.Algebra.Order.Sub.WithTop
 import Mathlib.Algebra.Order.Ring.WithTop
+
+
+
 namespace Timelib
 
 /--
-If nonnegative, the number of nanoseconds since the epoch (midnight of 0001/Jan/01)
-If negative, the number of nanoseconds until the epoch (midnight of 0001/Jan/01)
+If nonnegative, the number of nanoseconds since the epoch (midnight of 0001/Jan/01); if negative,
+the number of nanoseconds until the epoch (midnight of 0001/Jan/01).
 
-A `NaiveDateTime pow` represents a date and time in the appropriate SI unit which has no knowledge of
-leap seconds or time zones.
+A `NaiveDateTime pow` represents a date and time in the appropriate SI unit which has no knowledge
+of leap seconds or time zones.
 
-`DateTime` elements can only be indexed by SI exponents less than
-or equal to zero.
+`DateTime` elements can only be indexed by SI exponents less than or equal to zero.
 -/
 structure NaiveDateTime (p : Int) extends SignedDuration p where
   isLe : p <= 0
@@ -28,11 +29,11 @@ namespace NaiveDateTime
 variable {siPow : Int}
 
 /-
-Using `Int.fdiv`, because we have a positive denominator (the number of seconds in a day)
-and we want to round down if `dt.val` is negative, up if it's nonnegative.
+Using `Int.fdiv`, because we have a positive denominator (the number of seconds in a day) and we
+want to round down if `dt.val` is negative, up if it's nonnegative.
 
-Equivalently, you can round toward zero and only add `1` if the
-quotient is greater than of equal to zero.
+Equivalently, you can round toward zero and only add `1` if the quotient is greater than of equal to
+zero.
 -/
 def toScalarDate (dt : NaiveDateTime siPow) : ScalarDate :=
   let oneDay := SignedDuration.Constants.oneDayDuration dt.isLe
@@ -57,9 +58,8 @@ instance instInhabited {p : Int} {isLe : p <= 0} : Inhabited (NaiveDateTime p) w
 def dayOfWeek (dt : NaiveDateTime siPow) : Int :=
   dt.toScalarDate.dayOfWeek
 
-/-- The `DateTime` as of midnight (00:00:00 uninterpreted) on the ymd. We
-subtract one to account for the fact that `Date` is one day ahead of the
-zero-based `NaiveDateTime`.
+/-- The `DateTime` as of midnight (00:00:00 uninterpreted) on the ymd. We subtract one to account
+for the fact that `Date` is one day ahead of the zero-based `NaiveDateTime`.
 -/
 def fromYmd
   {siPow : Int}
@@ -114,7 +114,9 @@ instance instEquivIntSelf {siPow : Int} {isLe : siPow <= 0} : Equiv Int (NaiveDa
   left_inv := by simp only [Function.LeftInverse, forall_const]
   right_inv := by simp only [Function.RightInverse, Function.LeftInverse, implies_true]
 
-instance instEquivSignedDurationSelf {siPow : Int} {isLe : siPow <= 0} : Equiv (SignedDuration siPow) (NaiveDateTime siPow) where
+instance instEquivSignedDurationSelf {siPow : Int} {isLe : siPow <= 0} :
+  Equiv (SignedDuration siPow) (NaiveDateTime siPow)
+where
   toFun := fun dur => NaiveDateTime.mk dur.val isLe
   invFun := fun d => d.toSignedDuration
   left_inv _ := rfl

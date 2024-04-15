@@ -10,6 +10,10 @@ import Timelib.Date.Year
 
 open Lean
 
+
+
+namespace Timelib
+
 structure OrdinalDate where
   year : Year
   day : Nat
@@ -29,7 +33,8 @@ instance : FromJson OrdinalDate where
     else Except.error s!"OrdinalDate day out of range: {day}"
 
 
-theorem OrdinalDate.eq_of_val_eq : ∀ {o₁ o₂ : OrdinalDate} (_ : o₁.year = o₂.year) (h_day : o₁.day = o₂.day), o₁ = o₂
+theorem OrdinalDate.eq_of_val_eq
+: ∀ {o₁ o₂ : OrdinalDate} (_ : o₁.year = o₂.year) (_h_day : o₁.day = o₂.day), o₁ = o₂
 | ⟨y₁, d₁, hGt₁, hLt₁⟩, ⟨y₂, d₂, hGt₂, hLt₂⟩, hy, hd => by simp [hy, hd]; exact
   { left := hy, right := hd }
 
