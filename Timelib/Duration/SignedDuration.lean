@@ -285,24 +285,6 @@ instance instDecidableLTHet {p1 p2 : Int} (d1 : SignedDuration p1) (d2 : SignedD
 
 end SignedDuration
 
-/-
-I think the order/arithemetic instances just come from the previously defined heterogeneous versions.
--/
-
-
-
---def leftpad (n : Nat) (c : Char := ' ') (s : String) : String :=
---  ⟨List.leftpad n c s.data⟩
-
-/--
-As opposed to rendering a duration.
--/
---def renderDateHour {pow : Int} (t : Int) (h : 0 <= t) : String :=
---  leftpad 2 '0' (ToString.toString t)
---
---def renderDateHour' {pow : Int} (t : Nat) : String :=
---  leftpad 2 '0' (ToString.toString t)
-
 theorem toString_IntNat_eq (x : Nat) : ToString.toString (↑x : Int) = ToString.toString x := by
   simp [ToString.toString]
 

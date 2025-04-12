@@ -231,7 +231,6 @@ def printTaiAsUnix
   let z := (l + r.getD 0).prolepticGregorianEpochToUnixEpoch
   s!"{z}"
 
-
 structure ParseResult where
   isNegative: Bool
   year_ : Nat
@@ -244,7 +243,8 @@ structure ParseResult where
   so this may be ≥ 60
   -/
   rawSeconds: Nat
-  fractionalSeconds: Array Nat
+  fractionalSeconds: Nat
+  siPowAbs : Nat
   zone: SignedDuration 0
   hZone : zone.abs < ((SignedDuration.oneHour : SignedDuration 0) * (Int.ofNat 24))
 deriving Repr
@@ -252,33 +252,29 @@ deriving Repr
 namespace ParseResult
 
 def siPow (p : ParseResult) : Int :=
-  Int.negOfNat p.fractionalSeconds.size
+  Int.negOfNat p.siPowAbs
 
 theorem siPow_le (p : ParseResult) : p.siPow ≤ 0 := by
   simp only [siPow, Int.negOfNat_eq, Int.ofNat_eq_coe]; omega
 
 def fractionalSecondsDuration (p : ParseResult) : SignedDuration p.siPow :=
-  ⟨p.fractionalSeconds.foldl (init := 0) (fun sink next => (sink * 10) + (Int.ofNat next))⟩
+  ⟨p.fractionalSeconds⟩
 
 def rawSecondsDuration (p : ParseResult) : SignedDuration p.siPow :=
   have _ := p.siPow_le
   (SignedDuration.oneSecond : SignedDuration p.siPow) * (Int.ofNat p.rawSeconds)
 
 /--
-Turn e.g. `rawSeconds := 10, fracitonalSeconds := [0, 7, 9]`
-into `10079`
+Turn e.g. `rawSeconds := 12, fracitonalSeconds := 79, siPowAbs := 3`
+into `12079`
 -/
 def completeSecondsWFractional (p : ParseResult) : Nat := Id.run do
-  let mut out := p.rawSeconds
-  for digit in p.fractionalSeconds do
-    out := (10 * out) + digit
-  return out
+  let seconds : SignedDuration p.siPow := (⟨Int.ofNat p.rawSeconds⟩ : SignedDuration 0).convertLossless (siPowLe := p.siPow_le)
+  let fractional : SignedDuration p.siPow := ⟨Int.ofNat p.fractionalSeconds⟩
+  (seconds + fractional).val.natAbs
 
-def secondsWithFractional (p : ParseResult) : (Nat × Nat) := Id.run do
-  let mut out := p.rawSeconds
-  for digit in p.fractionalSeconds do
-    out := (10 * out) + digit
-  return (out, (p.rawSeconds - 59) * (10 ^ p.siPow.natAbs))
+def displayedPositiveLeapSeconds (p : ParseResult) : Nat :=
+  (p.rawSeconds - 59) * (10 ^ p.siPowAbs)
 
 /--
 From a `ParseResul`, yield a `NaiveDateTime` showing the UTC date time, meaning
@@ -303,7 +299,7 @@ Try to convert a parse result to a TAI `NaiveDateTime`.
 -/
 def toNaiveDateTime? (p : ParseResult) (leapTable : List Row) : Except String (NaiveDateTime p.siPow) :=
 /- `positiveLeap` here is just anything 60+ in the time stamp's string -/
- let (secs, positiveLeap) := p.secondsWithFractional
+ let positiveLeap := p.displayedPositiveLeapSeconds
  let naiveUtcWPosLeaps := p.toUTCDateTime
  match  naiveUtcWPosLeaps with
  | none => .error "failed to gget naiveUtcWPosLeaps"
@@ -398,13 +394,16 @@ def parseTimeZoneDesignator : Std.Internal.Parsec.String.Parser (SignedDuration 
 Parse an ISO 8601 basic time stamp as a `ParseResult`
 -/
 def parseIso8601DateTime : Std.Internal.Parsec.String.Parser ParseResult := do
-  let fractional : Std.Internal.Parsec.String.Parser (Array Nat) := do
+  let fractional : Std.Internal.Parsec.String.Parser (Nat × Nat) := do
     if (← Std.Internal.Parsec.peek?) == some '.'
     then
       Std.Internal.Parsec.String.skipChar '.'
-      manyNat
+      let digits ← manyNat
+      let t := digits.foldl (init := 0) (fun sink next => (sink * 10) + next)
+      return (t, digits.size)
     else
-      return #[]
+      return (0, 0)
+
   let isNegative ← tryNeg
   let year ← parseNDigits 4
   let month ← parseNDigits 2
@@ -413,7 +412,7 @@ def parseIso8601DateTime : Std.Internal.Parsec.String.Parser ParseResult := do
   let hours ← parseNDigits 2
   let minutes ← parseNDigits 2
   let rawSeconds ← parseNDigits 2
-  let fractionalSeconds ← fractional
+  let (fractionalSeconds, siPowAbs) ← fractional
   let zone ← parseTimeZoneDesignator --Std.Internal.Parsec.manyChars (Std.Internal.Parsec.String.asciiLetter)
   if hZone : zone.abs < (SignedDuration.oneHour * (Int.ofNat 24))
   then
@@ -426,6 +425,7 @@ def parseIso8601DateTime : Std.Internal.Parsec.String.Parser ParseResult := do
       minutes
       rawSeconds
       fractionalSeconds
+      siPowAbs
       zone
       hZone
     }
