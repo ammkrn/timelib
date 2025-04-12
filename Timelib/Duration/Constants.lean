@@ -1,27 +1,54 @@
-
-import Timelib.Util
-import Timelib.Date.ScalarDate
-import Timelib.Date.Convert
 import Timelib.Duration.SignedDuration
 
-namespace Timelib.SignedDuration.Constants
+namespace Timelib.SignedDuration
 
-abbrev oneSecondSeconds : SecondPrecision.SignedDuration := 1
-abbrev oneMinuteSeconds : SecondPrecision.SignedDuration := 60
-abbrev oneHourSeconds   : SecondPrecision.SignedDuration := 3600
-abbrev oneDaySeconds    : SecondPrecision.SignedDuration := 86400
-abbrev oneWeekSeconds   : SecondPrecision.SignedDuration := 604800
-abbrev oneYearSeconds   : SecondPrecision.SignedDuration := 31536000
+section durations
 
---def oneSecondDuration (p : NegSiPow) : SignedDuration p := oneSecondSeconds.convertLossless p.property
---def oneMinuteDuration (p : NegSiPow) : SignedDuration p := oneMinuteSeconds.convertLossless p.property
---def oneDayDuration (p : NegSiPow) : SignedDuration p := oneDaySeconds.convertLossless p.property
---def oneWeekDuration (p : NegSiPow) : SignedDuration p := oneWeekSeconds.convertLossless p.property
---def oneYearDuration (p : NegSiPow) : SignedDuration p := oneYearSeconds.convertLossless p.property
+variable {siPow : Int} (siPow_le : siPow ≤ 0 := by smesh)
 
+def oneSecond : SignedDuration siPow := (⟨1⟩ : SignedDuration 0).convertLossless siPow_le
+def oneMinute : SignedDuration siPow := (⟨60⟩ : SignedDuration 0).convertLossless siPow_le
+def oneHour : SignedDuration siPow := (⟨3600⟩ : SignedDuration 0).convertLossless siPow_le
+def oneDay : SignedDuration siPow := (⟨86400⟩ : SignedDuration 0).convertLossless siPow_le
+def oneWeek : SignedDuration siPow := (⟨604800⟩ : SignedDuration 0).convertLossless siPow_le
+def oneYearNonleap : SignedDuration siPow := (⟨31536000⟩ : SignedDuration 0).convertLossless siPow_le
+def oneYearLeap : SignedDuration siPow := (⟨31622400⟩ : SignedDuration 0).convertLossless siPow_le
 
-def oneSecondDuration {p : Int} (isLe : p <= 0 := by decide) : SignedDuration p := oneSecondSeconds.convertLossless isLe
-def oneMinuteDuration {p : Int} (isLe : p <= 0 := by decide) : SignedDuration p := oneMinuteSeconds.convertLossless isLe
-def oneDayDuration    {p : Int} (isLe : p <= 0 := by decide) : SignedDuration p := oneDaySeconds.convertLossless isLe
-def oneWeekDuration   {p : Int} (isLe : p <= 0 := by decide) : SignedDuration p := oneWeekSeconds.convertLossless isLe
-def oneYearDuration   {p : Int} (isLe : p <= 0 := by decide) : SignedDuration p := oneYearSeconds.convertLossless isLe
+theorem oneMinute_eq : oneMinute = oneSecond * (60 : Int) := by
+  simp only [oneMinute, convertLossless, Int.zero_sub, Int.natAbs_neg, Int.mul_comm, oneSecond,
+    Int.one_mul, hMul_def]
+
+theorem oneHour_eq : oneHour = oneMinute * (60 : Int) := by
+  simp only [oneHour, convertLossless, Int.zero_sub, Int.natAbs_neg, oneMinute, hMul_def, mk.injEq]
+  omega
+
+theorem oneDay_eq : oneDay = oneHour * (24 : Int) := by
+  simp only [oneDay, oneHour, convertLossless, Int.zero_sub, Int.natAbs_neg, oneMinute, hMul_def, mk.injEq]
+  omega
+
+theorem oneWeek_eq : oneWeek = oneDay * (7 : Int) := by
+  simp only [oneWeek, oneDay, convertLossless, Int.zero_sub, Int.natAbs_neg, oneMinute, hMul_def, mk.injEq]
+  omega
+
+theorem oneYearNonleap_eq : oneYearNonleap = oneDay * (365 : Int) := by
+  simp only [oneYearNonleap, oneDay, convertLossless, Int.zero_sub, Int.natAbs_neg, oneMinute, hMul_def, mk.injEq]
+  omega
+
+theorem oneYearLeap_eq : oneYearLeap = oneDay * (366 : Int) := by
+  simp only [oneYearLeap, oneDay, convertLossless, Int.zero_sub, Int.natAbs_neg, oneMinute, hMul_def, mk.injEq]
+  omega
+
+end durations
+
+theorem zero_le_oneDay
+  {p : Int}
+  (isLe : p <= 0) :
+  0 <= (oneDay isLe).val := by
+  let rec zero_lt_10_pow : (p : Nat) → 0 < (10 : Int) ^ p
+    | 0 => by simp
+    | p+1 => by have ih := zero_lt_10_pow p; omega
+  simp only [oneDay, convertLossless]
+  apply Int.le_of_lt
+  refine Int.mul_pos ?ha ?hb
+  case ha => decide
+  case hb => simp [zero_lt_10_pow p.natAbs]

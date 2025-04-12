@@ -1,14 +1,5 @@
-import Timelib.Util
+-- This module serves as the root of the `Timelib` library.
+-- Import modules here that should be built as part of the library.
 import Timelib.Date.Basic
-import Timelib.Date.Convert
-import Timelib.Date.Month
-import Timelib.Date.OrdinalDate
-import Timelib.Date.ScalarDate
-import Timelib.Date.Year
-import Timelib.Date.Ymd
-import Timelib.Duration.SignedDuration
-import Timelib.Duration.Constants
-import Timelib.DateTime.NaiveDateTime
-import Timelib.DateTime.LeapSeconds
-import Timelib.DateTime.TimeZone
-import Timelib.DateTime.DateTime
+import Timelib.DateTime.Basic
+import Timelib.Duration.Basic

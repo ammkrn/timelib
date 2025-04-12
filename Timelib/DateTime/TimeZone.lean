@@ -1,32 +1,48 @@
 import Timelib.Util
-import Timelib.DateTime.NaiveDateTime
+import Timelib.DateTime.Naive
+import Timelib.Duration.Constants
 import Timelib.Duration.SignedDuration
-
-
+import Std
 
 namespace Timelib
 
+/--
+A time zone as an optional (long) name, a short identifier, and some offset
+relative to UTC/Zulu.
+-/
+@[ext]
 structure TimeZone where
-  ident {p : Int} (zulu : NaiveDateTime p) : String
-  fromZulu {p : Int} (zulu : NaiveDateTime p) : SignedDuration p
-  toZulu {p : Int} (local_ : NaiveDateTime p) : SignedDuration p
+  longIdent : Option String
+  shortIdent : String
+  fromZulu : SignedDuration 0
+deriving DecidableEq, Hashable
 
 namespace TimeZone
 
-class LawfulTimeZone (A : TimeZone) where
-  applyIso {p : Int} (tai : NaiveDateTime p) : tai + (A.fromZulu (A.toZulu tai + tai)) = tai
-  removeIso {p : Int} (x : NaiveDateTime p) : x + (A.toZulu (A.fromZulu x + x)) = x
+namespace TimeZone
+theorem add_sub_cancel {siPow : Int} (z : TimeZone) (zulu : NaiveDateTime siPow) :
+  zulu + (z.fromZulu.convertLossless zulu.isLe) - (z.fromZulu.convertLossless zulu.isLe) = zulu := by simp
 
+theorem sub_add_cancel {siPow : Int} (z : TimeZone) (zulu : NaiveDateTime siPow) :
+  zulu - (z.fromZulu.convertLossless zulu.isLe) + (z.fromZulu.convertLossless zulu.isLe) = zulu := by simp
 
+@[reducible]
 def Zulu : TimeZone := {
-  ident := fun _ => "zulu"
-  fromZulu := fun _ => 0
-  toZulu := fun _ => 0
+  longIdent := some "Zulu"
+  shortIdent := "Z"
+  fromZulu := 0
 }
 
-instance : LawfulTimeZone Zulu := {
-  applyIso := by simp only [Zulu, NaiveDateTime.hAdd_signed_def, add_zero, forall_const,
-    Subtype.forall, implies_true]
-  removeIso := by simp only [Zulu, NaiveDateTime.hAdd_signed_def, add_zero, forall_const,
-    Subtype.forall, implies_true];
+def Cst : TimeZone := {
+  longIdent := some "Central Standard Time"
+  shortIdent := "CST"
+  fromZulu := -(SignedDuration.oneHour * (6 : Int))
 }
+
+def stdTimeZones : List TimeZone := [
+  Zulu,
+  Cst
+]
+
+def stdTimeZonesMap : Std.HashMap String TimeZone :=
+  Std.HashMap.ofList <| stdTimeZones.map <| fun x => (x.shortIdent, x)

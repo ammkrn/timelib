@@ -1,0 +1,14 @@
+name = "timelib"
+version = "0.2.0"
+defaultTargets = ["Timelib"]
+testDriver = "Tests"
+license = "Apache-2.0"
+
+[[lean_lib]]
+name = "Timelib"
+leanOptions = {autoImplicit = false}
+serverOptions = {autoImplicit = false}
+
+[[lean_lib]]
+name = "Tests"
+globs = ["Tests.+"]

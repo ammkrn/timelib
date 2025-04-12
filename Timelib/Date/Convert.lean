@@ -1,306 +1,38 @@
-import Lean.Data.Json
-import Mathlib.Data.Nat.Basic
-import Mathlib.Init.Order.Defs
-import Mathlib.Init.Data.Nat.Basic
-import Mathlib.Init.Data.Nat.Lemmas
-import Mathlib.Init.Data.Int.Basic
-import Mathlib.Logic.Equiv.Basic
-import Mathlib.Init.Data.Int.Order
 import Timelib.Date.Year
 import Timelib.Date.Month
-import Timelib.Date.ScalarDate
-import Timelib.Date.OrdinalDate
+import Timelib.Date.Scalar
+import Timelib.Date.Ordinal
 import Timelib.Date.Ymd
 import Timelib.Util
 
-open Lean
-
-
-
 namespace Timelib
 
-theorem Year.lastDayFebruary_eq (y : Year) : y.lastDayFebruary = Month.february.numDays y + Year.lastDayJanuary := by
-  by_cases h: y.isLeapYear <;> simp [h,  Month.numDays]
+open Month
 
-theorem Year.lastDayMarch_eq (y : Year) : y.lastDayMarch = Month.march.numDays y + y.lastDayFebruary := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayApril_eq (y : Year) : y.lastDayApril = Month.april.numDays y + y.lastDayMarch := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayMay_eq (y : Year) : y.lastDayMay = Month.may.numDays y + y.lastDayApril := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayJune_eq (y : Year) : y.lastDayJune = Month.june.numDays y + y.lastDayMay := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayJuly_eq (y : Year) : y.lastDayJuly = Month.july.numDays y + y.lastDayJune := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayAugust_eq (y : Year) : y.lastDayAugust = Month.august.numDays y + y.lastDayJuly := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDaySeptember_eq (y : Year) : y.lastDaySeptember = Month.september.numDays y + y.lastDayAugust := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayOctober_eq (y : Year) : y.lastDayOctober = Month.october.numDays y + y.lastDaySeptember := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayNovember_eq (y : Year) : y.lastDayNovember = Month.november.numDays y + y.lastDayOctober := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-theorem Year.lastDayDecember_eq (y : Year) : y.lastDayDecember = Month.december.numDays y + y.lastDayNovember := by
-  simp [Month.numDays]; by_cases h: y.isLeapYear <;> simp [h]
-
-/- Predicates used to show that the conversion between (days <= 365) and (Month, day) pairs
-   is a bijection. There isn't really a "nice" way of doing this, because
-   months have irregular numbers of days, and the number of days depends on
-   whether the current year is a leap year. Lean can't handle a function
-   with 365 cases, so instead we chunk them into 12 groups by month -/
-@[reducible] def OrdinalDate.isJanuaryDay   (d : OrdinalDate) : Prop := d.day <= Year.lastDayJanuary
-@[reducible] def OrdinalDate.isFebruaryDay  (d : OrdinalDate) : Prop := Year.lastDayJanuary < d.day ∧ d.day <= d.year.lastDayFebruary
-@[reducible] def OrdinalDate.isMarchDay     (d : OrdinalDate) : Prop := d.year.lastDayFebruary < d.day ∧ d.day <= d.year.lastDayMarch
-@[reducible] def OrdinalDate.isAprilDay     (d : OrdinalDate) : Prop := d.year.lastDayMarch < d.day ∧ d.day <= d.year.lastDayApril
-@[reducible] def OrdinalDate.isMayDay       (d : OrdinalDate) : Prop := d.year.lastDayApril < d.day ∧ d.day <= d.year.lastDayMay
-@[reducible] def OrdinalDate.isJuneDay      (d : OrdinalDate) : Prop := d.year.lastDayMay < d.day ∧ d.day <= d.year.lastDayJune
-@[reducible] def OrdinalDate.isJulyDay      (d : OrdinalDate) : Prop := d.year.lastDayJune < d.day ∧ d.day <= d.year.lastDayJuly
-@[reducible] def OrdinalDate.isAugustDay    (d : OrdinalDate) : Prop := d.year.lastDayJuly < d.day ∧ d.day <= d.year.lastDayAugust
-@[reducible] def OrdinalDate.isSeptemberDay (d : OrdinalDate) : Prop := d.year.lastDayAugust < d.day ∧ d.day <= d.year.lastDaySeptember
-@[reducible] def OrdinalDate.isOctoberDay   (d : OrdinalDate) : Prop := d.year.lastDaySeptember < d.day ∧ d.day <= d.year.lastDayOctober
-@[reducible] def OrdinalDate.isNovemberDay  (d : OrdinalDate) : Prop := d.year.lastDayOctober < d.day ∧ d.day <= d.year.lastDayNovember
-@[reducible] def OrdinalDate.isDecemberDay  (d : OrdinalDate) : Prop := d.year.lastDayNovember < d.day
-
-@[reducible] def OrdinalDate.toYmd (ordinal : OrdinalDate) : Ymd :=
-  if hJan: ordinal.day <= Year.lastDayJanuary
-    then ⟨ordinal.year, Month.january, ordinal.day, ordinal.hGe, hJan⟩
-  else if hFeb: ordinal.day <= ordinal.year.lastDayFebruary
-    then ⟨ordinal.year, Month.february, ordinal.day - Year.lastDayJanuary, Nat.sub_pos_of_lt (Nat.gt_of_not_le hJan), Nat.sub_le_of_le_add (ordinal.year.lastDayFebruary_eq ▸ hFeb)⟩
-  else if hMar: ordinal.day <= ordinal.year.lastDayMarch
-    then ⟨ordinal.year, Month.march, ordinal.day - ordinal.year.lastDayFebruary, Nat.sub_pos_of_lt (Nat.gt_of_not_le hFeb), Nat.sub_le_of_le_add (ordinal.year.lastDayMarch_eq ▸ hMar)⟩
-  else if hApr: ordinal.day <= ordinal.year.lastDayApril
-    then ⟨ordinal.year, Month.april, ordinal.day - ordinal.year.lastDayMarch, Nat.sub_pos_of_lt (Nat.gt_of_not_le hMar), Nat.sub_le_of_le_add (ordinal.year.lastDayApril_eq ▸ hApr)⟩
-  else if hMay: ordinal.day <= ordinal.year.lastDayMay
-    then ⟨ordinal.year, Month.may, ordinal.day - ordinal.year.lastDayApril, Nat.sub_pos_of_lt (Nat.gt_of_not_le hApr), Nat.sub_le_of_le_add (ordinal.year.lastDayMay_eq ▸ hMay)⟩
-  else if hJun: ordinal.day <= ordinal.year.lastDayJune
-    then ⟨ordinal.year, Month.june, ordinal.day - ordinal.year.lastDayMay, Nat.sub_pos_of_lt (Nat.gt_of_not_le hMay), Nat.sub_le_of_le_add (ordinal.year.lastDayJune_eq ▸ hJun)⟩
-  else if hJul: ordinal.day <= ordinal.year.lastDayJuly
-    then ⟨ordinal.year, Month.july, ordinal.day - ordinal.year.lastDayJune, Nat.sub_pos_of_lt (Nat.gt_of_not_le hJun), Nat.sub_le_of_le_add (ordinal.year.lastDayJuly_eq ▸ hJul)⟩
-  else if hAug: ordinal.day <= ordinal.year.lastDayAugust
-    then ⟨ordinal.year, Month.august, ordinal.day - ordinal.year.lastDayJuly, Nat.sub_pos_of_lt (Nat.gt_of_not_le hJul), Nat.sub_le_of_le_add (ordinal.year.lastDayAugust_eq ▸ hAug)⟩
-  else if hSep: ordinal.day <= ordinal.year.lastDaySeptember
-    then ⟨ordinal.year, Month.september, ordinal.day - ordinal.year.lastDayAugust, Nat.sub_pos_of_lt (Nat.gt_of_not_le hAug), Nat.sub_le_of_le_add (ordinal.year.lastDaySeptember_eq ▸ hSep)⟩
-  else if hOct: ordinal.day <= ordinal.year.lastDayOctober
-    then ⟨ordinal.year, Month.october, ordinal.day - ordinal.year.lastDaySeptember, Nat.sub_pos_of_lt (Nat.gt_of_not_le hSep), Nat.sub_le_of_le_add (ordinal.year.lastDayOctober_eq ▸ hOct)⟩
-  else if hNov: ordinal.day <= ordinal.year.lastDayNovember
-    then ⟨ordinal.year, Month.november, ordinal.day - ordinal.year.lastDayOctober, Nat.sub_pos_of_lt (Nat.gt_of_not_le hOct), Nat.sub_le_of_le_add (ordinal.year.lastDayNovember_eq ▸ hNov)⟩
-  else
-    have hr : ordinal.day - Year.lastDayNovember ordinal.year ≤ Month.numDays ordinal.year 12 := by
-      apply Nat.sub_le_of_le_add
-      have hLe := ordinal.hLe
-      simp [Year.numDaysInGregorianYear] at hLe
-      simp [Month.numDays]
-      refine le_trans hLe ?hLe2
-      by_cases hh: ordinal.year.isLeapYear <;> simp [hh]
-    ⟨ordinal.year, Month.december, ordinal.day - ordinal.year.lastDayNovember, Nat.sub_pos_of_lt (Nat.gt_of_not_le hNov), hr⟩
-
-def Ymd.toOrdinalDate (ymd : Ymd) : OrdinalDate :=
-  match ymd.month with
-  | Month.january =>
-    have hLe : ymd.day ≤ Year.numDaysInGregorianYear ymd.year := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [hLeap, Year.numDaysInGregorianYear]
-      case pos => exact Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 366 by decide))
-      case neg => exact Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 365 by decide))
-    ⟨ymd.year, ymd.day, ymd.dayGe, hLe⟩
-  | Month.february  =>
-    have hLe : ymd.day + Year.lastDayJanuary ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [hLeap, Year.numDaysInGregorianYear]
-      case pos => exact Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 335 by decide))
-      case neg => exact Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 334 by decide))
-    ⟨ymd.year, ymd.day + Year.lastDayJanuary, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.march  =>
-    have hLe : ymd.day + ymd.year.lastDayFebruary ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 306 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayFebruary, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.april  =>
-    have hLe : ymd.day + ymd.year.lastDayMarch ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 275 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayMarch, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.may =>
-    have hLe : ymd.day + ymd.year.lastDayApril ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 245 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayApril, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.june =>
-    have hLe : ymd.day + ymd.year.lastDayMay ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 214 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayMay, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.july  =>
-    have hLe : ymd.day + ymd.year.lastDayJune ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 184 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayJune, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.august  =>
-    have hLe : ymd.day + ymd.year.lastDayJuly ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 153 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayJuly, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.september  =>
-    have hLe : ymd.day + ymd.year.lastDayAugust ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 122 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayAugust, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.october =>
-    have hLe : ymd.day + ymd.year.lastDaySeptember ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 92 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDaySeptember, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.november =>
-    have hLe : ymd.day + ymd.year.lastDayOctober ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [Year.numDaysInGregorianYear, hLeap, Nat.le_trans (ymd.dayLe) (Nat.le_trans (ymd.month.numDays_lt_31 ymd.year) (show 31 <= 61 by decide))]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayOctober, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-  | Month.december =>
-    have hLe : ymd.day + ymd.year.lastDayNovember ≤ ymd.year.numDaysInGregorianYear := by
-      by_cases hLeap : ymd.year.isLeapYear <;> simp_arith [hLeap, Year.numDaysInGregorianYear, Month.numDays_lt_31, Nat.le_trans ymd.dayLe (ymd.month.numDays_lt_31 ymd.year)]
-    ⟨ymd.year, ymd.day + ymd.year.lastDayNovember, Nat.le_trans ymd.dayGe (Nat.le_add_right _ _), hLe⟩
-
-@[simp]
-theorem Ymd.toOrdinalDate_year_same (ymd : Ymd) : (ymd.toOrdinalDate).year = ymd.year := by
-  simp [Ymd.toOrdinalDate]; cases ymd.month <;> simp
-
-
-def ScalarDate.toOrdinalDateYearIsLastDayOfLeapYear (d : ScalarDate) : Prop :=
-  let dayPred := d.day - 1
-  let hundredGroupsDays := dayPred.fmod 146097
-  let fourGroupDays := hundredGroupsDays % 36524
-  let singlesGroupDays := fourGroupDays % 1461
-  let num100YearGroups := hundredGroupsDays / 36524
-  let numSingleYears : Int := singlesGroupDays / 365
-  num100YearGroups = 4 ∨ numSingleYears = 4
-
-def ScalarDate.toOrdinalDateYear (d : ScalarDate) : Year :=
-  /- We substract one since the measure is 1-based. -/
-  let dayPred := d.day - 1
-  /- So days < 146097; the days in the 100 groups. -/
-  let hundredGroupsDays := dayPred.fmod 146097
-  /- days < 36524; the days in the 4 groups -/
-  let fourGroupDays := hundredGroupsDays % 36524
-  /- days < 1461; the days in the singles -/
-  let singlesGroupDays := fourGroupDays % 1461
-  /- The number of 400 groups -/
-  let num400YearGroups := dayPred.fdiv 146097
-  /- The number of 100 groups -/
-  let num100YearGroups := hundredGroupsDays / 36524
-  /- The number of 4 groups -/
-  let num4YearGroups := fourGroupDays / 1461
-  /- Number of single years -/
-  let numSingleYears : Int := singlesGroupDays / 365
-  /- Years from the 400 groups -/
-  let yearsFrom400Groups := num400YearGroups * 400
-  /- Years from the 100 groups -/
-  let yearsFrom100Groups := num100YearGroups * 100
-  /- Years from the 4 groups -/
-  let yearsFrom4Groups := num4YearGroups * 4
-  let isLastDayOfLeapYear := num100YearGroups = 4 ∨ numSingleYears = 4
-  Year.mk (yearsFrom400Groups + yearsFrom100Groups + yearsFrom4Groups + numSingleYears + (if isLastDayOfLeapYear then 0 else 1))
-
-example (a b : ℤ) (_h: a ≤ b) (h0 : 0 < b): a % b < b:= by
-  exact Int.emod_lt_of_pos a h0
-
-theorem ScalarDate.toOrdinalDateYear_leap (d : ScalarDate) :
-  d.toOrdinalDateYearIsLastDayOfLeapYear → d.toOrdinalDateYear.isLeapYear := by
-  simp only [ScalarDate.toOrdinalDateYearIsLastDayOfLeapYear, Year.isLeapYear, ScalarDate.toOrdinalDateYear]
-  refine Or.rec ?l ?r
-  case l =>
-    intro h
-    have h_eq : (Int.fmod (d.day - 1) 146097) = 146096 := by
-      have hle_left : 146096 ≤ Int.fmod (d.day - 1) 146097 :=
-         @Int.mul_le_of_le_div 4 (b := Int.fmod (d.day - 1) 146097) 36524 pos36524 (le_of_eq h.symm)
-      refine' le_antisymm (Int.le_of_add_le_add_right _ ) hle_left
-      use 1
-      exact (Int.fmod_lt _ pos146097)
-    apply Or.inr
-    simp [h_eq, h4, h1, h100, hdiv']
-  case r =>
-    intro h
-    have h_eq : (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) = 1460 := by
-      have hle_left : 1460 ≤ (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) :=
-        @Int.mul_le_of_le_div 4 ((((Int.fmod (d.day - 1) 146097) % 36524) % 1461)) 365 (pos365) (le_of_eq h.symm)
-      refine' le_antisymm ((Int.lt_add_one_iff ).mp <| Int.emod_lt_of_pos _ pos1461) hle_left
-    apply Or.inl
-    simp [h_eq, h100, h4, h1, hdiv, hdiv']
-    refine And.intro ?ll ?rr
-    case ll =>
-      have hleft : (Int.fdiv (d.day - 1) 146097) * 400 = ((Int.fdiv (d.day - 1) 146097) * 100) * 4 := by
-        rw [mul_assoc _ 100 4]; simp [show (100 : Int) * 4 = 400 by decide]
-      have hright : ((Int.fmod (d.day - 1) 146097) / 36524) * 100 = (((Int.fmod (d.day - 1) 146097) / 36524) * 25) * 4 := by
-        rw [mul_assoc _ 25 4]; simp [show (25 : Int) * 4 = 100 by decide]
-      simp [hleft, hright, (Int.mul_add _ _ _).symm]
-    case rr =>
-      have hleft : (Int.fdiv (d.day - 1) 146097) * 400 = ((Int.fdiv (d.day - 1) 146097) * 4) * 100 := by
-        rw [mul_assoc _ 4 100]; simp [show (4 : Int) * 100 = 400 by decide]
-      simp [hleft, (Int.mul_add _ _ _).symm]
-      rw [add_assoc]
-      simp
-      intro hf
-      have hdiv_nonneg : 0 ≤ (Int.fmod (d.day - 1) 146097) % 36524 / 1461 := by
-        omega
-        --Int.div_nonneg (Int.mod_nonneg _ (by decide)) (le_of_lt pos1461)
-      have hlt_100 : ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 * 4 + 4 < 100 := by
-        apply Int.add_lt_of_lt_sub_right
-        rw [(show (100 : Int) - 4 = 96 by decide)]
-        apply Int.mul_lt_of_lt_div pos4
-        rw [(show (96 : Int) / 4 = 24 by decide)]
-        apply Int.div_lt_of_lt_mul pos1461
-        rw [(show (24 : Int) * 1461 = 35064 by decide)]
-        apply lt_of_not_ge
-        intro hf
-        cases lt_or_eq_of_le hf with
-        | inl hl =>
-          have lt_upper : (Int.fmod (d.day - 1) 146097) % 36524 < 36524 := Int.emod_lt_of_pos _ pos36524
-          have h_fac_24 :  (1461 : Int) * 24 = 35064 := by decide
-          rw [<- h_fac_24] at hl hf
-          have h_lt25 : ((Int.fmod (d.day - 1) 146097) % 36524) < (1461 : Int) * 25 := by
-            have h_fac_25 : (1461 : Int) * 25 = 36525 := by decide
-            rw [h_fac_25]; exact lt_trans lt_upper (by decide)
-          have h_hard : ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 = 24 := by
-            exact Int.div_pigeonhole (Int.emod_nonneg _ (by decide)) (by decide) (by decide) hl h_lt25
-          have h_from := ((@Int.div_mod_unique ((Int.fmod (d.day - 1) 146097) % 36524) 1461 1460 24 (show (0 : Int) < 1461 by decide)).mp (And.intro h_hard h_eq)).left
-          rw [<- h_from] at lt_upper
-          norm_num at lt_upper
-          done
-        | inr hr =>
-          rw [<- hr] at h_eq
-          have hne : Int.fmod 35064 1461 ≠ 1460 := by decide
-          exact False.elim (hne h_eq)
-      have hmul4 : 0 <=(Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4 :=
-        Int.mul_nonneg hdiv_nonneg (le_of_lt pos4)
-      have hout :
-        ((Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4 + 4) % 100 =
-        (Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4 + 4 := by
-        refine Int.emod_eq_of_lt ?x hlt_100
-        exact Int.add_right_nonneg (Int.mul_nonneg hdiv_nonneg (le_of_lt pos4)) (le_of_lt pos4)
-      rw [hout] at hf
-      have h_ne_zero : ((Int.fmod (d.day - 1) 146097) % 36524 / 1461 * 4) + 4 ≠ 0 := Int.add_pos_ne_zero_of_nonneg hmul4 (by decide)
-      refine' False.elim (h_ne_zero hf)
-      done
+namespace ScalarDate
 
 /-
 Taken from 2.21 and 2.22 in the Gregorian Calendar chapter of Calendrical Calculations.
 We can switch to using `/` and `%` instead of `fmod` and `fdiv` once we've uesd `fmod`
 the first time, because `fmod` with a nonnegative modulus alwayd produces a positive remainder.
 -/
-def ScalarDate.toOrdinalDate (d : ScalarDate) : OrdinalDate :=
+def toOrdinalDate (d : ScalarDate) : OrdinalDate :=
   /- We substract one since the measure is 1-based. -/
   let dayPred := d.day - 1
   /- So days < 146097; the days in the 100 groups. -/
-  let hundredGroupsDays := dayPred.fmod 146097
+  let hundredGroupsDays := dayPred % 146097
   /- days < 36524; the days in the 4 groups -/
   let fourGroupDays := hundredGroupsDays % 36524
   /- days < 1461; the days in the singles -/
   let singlesGroupDays := fourGroupDays % 1461
   /- The number of 400 groups -/
-  let num400YearGroups := dayPred.fdiv 146097
+  let num400YearGroups := dayPred / 146097
   /- The number of 100 groups -/
   let num100YearGroups := hundredGroupsDays / 36524
   /- The number of 4 groups -/
   let num4YearGroups := fourGroupDays / 1461
   /- Number of single years -/
-  let numSingleYears : Int := singlesGroupDays / 365
+  let numSingleYears := singlesGroupDays / 365
   /- Years from the 400 groups -/
   let yearsFrom400Groups := num400YearGroups * 400
   /- Years from the 100 groups -/
@@ -309,84 +41,318 @@ def ScalarDate.toOrdinalDate (d : ScalarDate) : OrdinalDate :=
   let yearsFrom4Groups := num4YearGroups * 4
   let isLastDayOfLeapYear := num100YearGroups = 4 ∨ numSingleYears = 4
   /- Add one iff it's not the last day of a leap year. If it is the last day of a leap year, withhold that additional year. -/
-  let year :=
+  let year := ⟨
     yearsFrom400Groups
     + yearsFrom100Groups
     + yearsFrom4Groups
     + numSingleYears
-    + (if isLastDayOfLeapYear then 0 else 1)
-    |> Year.mk
-  let day := if isLastDayOfLeapYear then 366 else ((singlesGroupDays.fmod 365) + 1)
-
-  have h_day_ge_one : 1 <= day.toNat := by
-    simp [day]
-    split
-    · decide
-    · apply (Int.le_toNat _).mpr
-      · simp
-        apply Int.fmod_nonneg
-        simp [singlesGroupDays, Int.emod_nonneg]
-        decide
-      · apply Int.le_add_one
-        simp [singlesGroupDays, Int.emod_nonneg]
-
+    + if isLastDayOfLeapYear then 0 else 1
+  ⟩
+  let day := if isLastDayOfLeapYear then 366 else ((singlesGroupDays % 365) + 1)
+  have h_day_ge_one : 1 <= day.toNat := by omega
   have hle' : Int.toNat day ≤ Year.numDaysInGregorianYear year := by
-    by_cases hleap : isLastDayOfLeapYear <;> simp [hleap]
-    -- If it is the last day of a leap year
+    by_cases hleap : isLastDayOfLeapYear
     case pos =>
-      --have h_is_leap := ScalarDate.toOrdinalDateYear_leap d hleap
-      --simp_all [toOrdinalDateYear, hleap, Year.numDaysInGregorianYear]
-      --decide
-      sorry
-    -- If it's not the last day of a leap year.
-    case neg =>
-      generalize hday : (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) % 365  = day
-      generalize hy' :
-        Year.mk
-          (Int.fdiv (d.day - 1) 146097 * 400
-          + (Int.fmod (d.day - 1) 146097) / 36524 * 100
-          + ((Int.fmod (d.day - 1) 146097) % 36524) / 1461 * 4
-          + (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) / 365 + 1) = y'
-      have hd' : day < 365 :=
-        hday ▸ (Int.emod_lt_of_pos (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) pos365)
-      have hpos : 0 <= day :=
-        hday ▸ (Int.emod_nonneg (((Int.fmod (d.day - 1) 146097) % 36524) % 1461) (ne_of_lt pos365).symm)
-      norm_num
-      sorry
-      --exact Int.toNat_le_of_le_of_nonneg (Int.add_nonneg hpos (by decide)) (le_trans (hd' : (day + 1) <= 365) y'.num_days_in_gregorian_year_ge_365)
-      done
+      have hIsLeap : year.isLeapYear := by
+        simp only [Year.isLeapYear]
+        have hx : year = {
+        val :=
+          yearsFrom400Groups + yearsFrom100Groups + yearsFrom4Groups + numSingleYears } := by
+          have h01 : year = {
+          val :=
+            yearsFrom400Groups + yearsFrom100Groups + yearsFrom4Groups + numSingleYears + if isLastDayOfLeapYear then 0 else 1 } := rfl
+          have h00 : (if isLastDayOfLeapYear then (0 : Int) else (1 : Int)) = 0 := by simp [hleap]
+          simp [h00] at h01
+          simp [h01]
+        simp [hx]
+        omega
+      simp only [Year.numDaysInGregorianYear, hIsLeap, ↓reduceIte, Nat.reduceAdd, ge_iff_le]
+      omega
+    case neg => simp only [Year.numDaysInGregorianYear]; omega
   ⟨year, day.toNat, h_day_ge_one, hle'⟩
 
+def toOrdinalDate_rassoc (d : ScalarDate) : OrdinalDate :=
+  /- We substract one since the measure is 1-based. -/
+  let dayPred := d.day - 1
+  /- So days < 146097; the days in the 100 groups. -/
+  let hundredGroupsDays := dayPred % 146097
+  /- days < 36524; the days in the 4 groups -/
+  let fourGroupDays := hundredGroupsDays % 36524
+  /- days < 1461; the days in the singles -/
+  let singlesGroupDays := fourGroupDays % 1461
+  /- The number of 400 groups -/
+  let num400YearGroups := dayPred / 146097
+  /- The number of 100 groups -/
+  let num100YearGroups := hundredGroupsDays / 36524
+  /- The number of 4 groups -/
+  let num4YearGroups := fourGroupDays / 1461
+  /- Number of single years -/
+  let numSingleYears := singlesGroupDays / 365
+  /- Years from the 400 groups -/
+  let yearsFrom400Groups := num400YearGroups * 400
+  /- Years from the 100 groups -/
+  let yearsFrom100Groups := num100YearGroups * 100
+  /- Years from the 4 groups -/
+  let yearsFrom4Groups := num4YearGroups * 4
+  let isLastDayOfLeapYear := num100YearGroups = 4 ∨ numSingleYears = 4
+  /- Add one iff it's not the last day of a leap year. If it is the last day of a leap year, withhold that additional year. -/
+  let year := ⟨
+    yearsFrom400Groups
+    + (yearsFrom100Groups
+    + (yearsFrom4Groups
+    + (numSingleYears
+    + if isLastDayOfLeapYear then 0 else 1)))
+  ⟩
+  let day := if isLastDayOfLeapYear then 366 else ((singlesGroupDays % 365) + 1)
+  have h_day_ge_one : 1 ≤ day.toNat := by omega
+  have hle' : Int.toNat day ≤ Year.numDaysInGregorianYear year := by
+    by_cases hleap : isLastDayOfLeapYear
+    case pos =>
+      have hIsLeap : year.isLeapYear := by
+        simp only [Year.isLeapYear]
+        --simp [isLastDayOfLeapYear, num100YearGroups, numSingleYears] at hleap
+        have hx : year = {
+        val :=
+          yearsFrom400Groups + yearsFrom100Groups + yearsFrom4Groups + numSingleYears } := by
+          have h01 : year = {
+           val :=
+             yearsFrom400Groups +
+               (yearsFrom100Groups + (yearsFrom4Groups + (numSingleYears + if isLastDayOfLeapYear then 0 else 1))) } := rfl
+          have h00 : (if isLastDayOfLeapYear then (0 : Int) else (1 : Int)) = 0 := by simp [hleap]
+          simp [h00] at h01
+          simp [h01]
+          omega
+        simp [hx]
+
+        omega
+      simp only [Year.numDaysInGregorianYear, hIsLeap, ↓reduceIte, Nat.reduceAdd, ge_iff_le]
+      omega
+    case neg => simp only [Year.numDaysInGregorianYear]; omega
+  ⟨year, day.toNat, h_day_ge_one, hle'⟩
+
+theorem toOrdinalDate_rassoc_eq : toOrdinalDate = toOrdinalDate_rassoc := by
+  apply funext
+  simp only [toOrdinalDate, toOrdinalDate_rassoc, OrdinalDate.mk.injEq, Year.mk.injEq, and_true]
+  omega
+
+
+end ScalarDate
+
+namespace OrdinalDate
 /-
 Derived from 2.17 in Calendrical Calculations.
 -/
-def OrdinalDate.toScalarDate : OrdinalDate → ScalarDate
+def toScalarDate : OrdinalDate → ScalarDate
 | ⟨⟨year⟩, ordinalDay, _, _⟩ =>
   let yearPred := year - 1
   -- number of 400 groups
-  let fourHundredGroups := yearPred.fdiv 400
+  let fourHundredGroups := yearPred / 400
   -- number of 100 groups; 0-3
-  let oneHundredGroups := (yearPred.fmod 400) / 100
+  let oneHundredGroups := (yearPred % 400) / 100
   -- number of 4 groups; 0-24
-  let fourGroups := (yearPred.fmod 100) / 4
+  let fourGroups := (yearPred % 100) / 4
   -- number of single years; 0, 1, 2, or 3
-  let singles := yearPred.fmod 4
+  let singles := yearPred % 4
   let daysFrom400YearGroups := fourHundredGroups * 146097
   let daysFrom100YearGroups := oneHundredGroups * 36524
   let daysFrom4YearGroups := fourGroups * 1461
   let daysFrom1YearGroups := singles * 365
   ⟨daysFrom400YearGroups + daysFrom100YearGroups + daysFrom4YearGroups + daysFrom1YearGroups + ordinalDay⟩
 
-def Ymd.toScalarDate (ymd : Ymd) : ScalarDate := ymd.toOrdinalDate.toScalarDate
+def toScalarDate_rassoc : OrdinalDate → ScalarDate
+| ⟨⟨year⟩, ordinalDay, _, _⟩ =>
+  let yearPred := year - 1
+  -- number of 400 groups
+  let fourHundredGroups := yearPred / 400
+  -- number of 100 groups; 0-3
+  let oneHundredGroups := (yearPred % 400) / 100
+  -- number of 4 groups; 0-24
+  let fourGroups := (yearPred % 100) / 4
+  -- number of single years; 0, 1, 2, or 3
+  let singles := yearPred % 4
+  let daysFrom400YearGroups := fourHundredGroups * 146097
+  let daysFrom100YearGroups := oneHundredGroups * 36524
+  let daysFrom4YearGroups := fourGroups * 1461
+  let daysFrom1YearGroups := singles * 365
+  ⟨daysFrom400YearGroups + (daysFrom100YearGroups + (daysFrom4YearGroups + (daysFrom1YearGroups + ordinalDay)))⟩
 
-def ScalarDate.toYmd (date : ScalarDate) : Ymd := date.toOrdinalDate.toYmd
+theorem toScalarDate_rassoc_eq : toScalarDate = toScalarDate_rassoc := by
+  apply funext
+  simp only [toScalarDate, toScalarDate_rassoc, ScalarDate.mk.injEq]
+  omega
 
-def ScalarDate.year (d : ScalarDate) : Year := d.toYmd.year
+theorem convGeneric {d : OrdinalDate} {m : Month} : d.day ≤ (m.nextWrapping.lastDayOf d.year) →
+  d.day - (m.lastDayOf d.year) <= (m.nextWrapping).numDays d.year := by
+  cases m using Month.casesOn' <;> (by_cases h: d.year.isLeapYear <;> (simp [h, numDays, lastDayOf]; omega))
 
-def ScalarDate.fromYmd
-  (y : Year)
-  (m : Month)
-  (d : Nat)
-  (dayGe : d >= 1 := by decide)
-  (dayLe : d <= m.numDays y := by decide) : ScalarDate :=
-  (Ymd.mk y m d dayGe dayLe).toScalarDate
+def toYmd (d : OrdinalDate) : Ymd :=
+  if hJan: d.day <= january.lastDayOf d.year
+    then ⟨d.year, january, d.day, d.hGe, by dsimp [numDays, lastDayOf] at *; assumption⟩
+  else if _: d.day <= february.lastDayOf d.year
+    then ⟨d.year, february, d.day - (january.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= march.lastDayOf d.year
+    then ⟨d.year, march, d.day - (february.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= april.lastDayOf d.year
+    then ⟨d.year, april, d.day - (march.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= may.lastDayOf d.year
+    then ⟨d.year, may, d.day - (april.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= june.lastDayOf d.year
+    then ⟨d.year, june, d.day - (may.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= july.lastDayOf d.year
+    then ⟨d.year, july, d.day - (june.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= august.lastDayOf d.year
+    then ⟨d.year, august, d.day - (july.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= september.lastDayOf d.year
+    then ⟨d.year, september, d.day - (august.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= october.lastDayOf d.year
+    then ⟨d.year, october, d.day - (september.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else if _: d.day <= november.lastDayOf d.year
+    then ⟨d.year, november, d.day - (october.lastDayOf d.year), by omega, convGeneric ‹_›⟩
+  else
+    have h := last_december_eq d.year
+    ⟨d.year, december, d.day - (november.lastDayOf d.year), by omega, convGeneric (h ▸ d.hLe)⟩
+
+end OrdinalDate
+
+namespace Ymd
+
+theorem conv_generic (ymd : Ymd) (m : Month) : (_ : m ≠ december := by decide)
+  → ymd.day + m.lastDayOf ymd.year <= ymd.year.numDaysInGregorianYear := by
+  simp only [Year.numDaysInGregorianYear]
+  have _ := ymd.month.numDays_le_31 ymd.year
+  have _ := ymd.dayLe
+  cases m using Month.casesOn'
+  all_goals (first | simp [lastDayOf]; try omega | contradiction)
+
+def toOrdinalDate (ymd : Ymd) : OrdinalDate :=
+  have hDay : forall n, ymd.day + n >= 1 := have _ := ymd.dayGe; by omega
+  match h:ymd.month with
+  | january =>
+    ⟨ymd.year, ymd.day, ymd.dayGe, Nat.le_trans ymd.dayLe (Nat.le_of_lt ymd.month_numDays_lt_gregorianYearNumDays)⟩
+  | february  =>
+    ⟨ymd.year, ymd.day + january.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | march  =>
+    ⟨ymd.year, ymd.day + february.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | april  =>
+    ⟨ymd.year, ymd.day + march.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | may =>
+    ⟨ymd.year, ymd.day + april.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | june =>
+    ⟨ymd.year, ymd.day + may.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | july  =>
+    ⟨ymd.year, ymd.day + june.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | august  =>
+    ⟨ymd.year, ymd.day + july.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | september  =>
+    ⟨ymd.year, ymd.day + august.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | october =>
+    ⟨ymd.year, ymd.day + september.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | november =>
+    ⟨ymd.year, ymd.day + october.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+  | december =>
+    ⟨ymd.year, ymd.day + november.lastDayOf ymd.year, hDay _, conv_generic ymd _⟩
+
+def toScalarDate (ymd : Ymd) : ScalarDate := ymd.toOrdinalDate.toScalarDate
+
+end Ymd
+
+def ScalarDate.toYmd (d : ScalarDate) : Ymd := d.toOrdinalDate.toYmd
+
+namespace OrdinalDate
+
+abbrev ofArrayAux (lastDayFn : Month → Nat) (n : Nat) (d : Fin n) : (Month × Nat) :=
+  if d.val <= (lastDayFn january)
+    then (january, d.val)
+  else if d.val <= (lastDayFn february)
+    then (february, d.val - (lastDayFn january))
+  else if d.val <= lastDayFn march
+    then (march, d.val - (lastDayFn february))
+  else if d.val <= lastDayFn april
+    then (april, d.val - (lastDayFn march))
+  else if d.val <= lastDayFn may
+    then (may, d.val - (lastDayFn april))
+  else if d.val <= lastDayFn june
+    then (june, d.val - (lastDayFn may))
+  else if d.val <= lastDayFn july
+    then (july, d.val - (lastDayFn june))
+  else if d.val <= lastDayFn august
+    then (august, d.val - (lastDayFn july))
+  else if d.val <= lastDayFn september
+    then (september, d.val - (lastDayFn august))
+  else if d.val <= lastDayFn october
+    then (october, d.val - (lastDayFn september))
+  else if d.val <= lastDayFn november
+    then (november, d.val - (lastDayFn october))
+  else
+    (december, d.val - (lastDayFn november))
+
+/-
+These would be made effectively constants that are kept alive.
+-/
+abbrev ofArrayLeap := ofArrayAux lastDayOfLeap 367
+abbrev ofArrayNonLeap := ofArrayAux lastDayOfNonLeap 366
+
+
+--def ofArrayLeap (d : Fin 367) : (Month × Nat) :=
+--  if d.val <= 31
+--    then (january, d.val)
+--  else if d.val <= february.lastDayOfLeap
+--    then (february, d.val - (january.lastDayOfLeap))
+--  else if d.val <= march.lastDayOfLeap
+--    then (march, d.val - (february.lastDayOfLeap))
+--  else if d.val <= april.lastDayOfLeap
+--    then (april, d.val - (march.lastDayOfLeap))
+--  else if d.val <= may.lastDayOfLeap
+--    then (may, d.val - (april.lastDayOfLeap))
+--  else if d.val <= june.lastDayOfLeap
+--    then (june, d.val - (may.lastDayOfLeap))
+--  else if d.val <= july.lastDayOfLeap
+--    then (july, d.val - (june.lastDayOfLeap))
+--  else if d.val <= august.lastDayOfLeap
+--    then (august, d.val - (july.lastDayOfLeap))
+--  else if d.val <= september.lastDayOfLeap
+--    then (september, d.val - (august.lastDayOfLeap))
+--  else if d.val <= october.lastDayOfLeap
+--    then (october, d.val - (september.lastDayOfLeap))
+--  else if d.val <= november.lastDayOfLeap
+--    then (november, d.val - (october.lastDayOfLeap))
+--  else
+--    (december, d.val - (november.lastDayOfLeap))
+--
+--def ofArrayNonLeap (d : Fin 366) : (Month × Nat) :=
+--  if d.val <= 31
+--    then (january, d.val)
+--  else if d.val <= february.lastDayOfNonLeap
+--    then (february, d.val - (january.lastDayOfNonLeap))
+--  else if d.val <= march.lastDayOfNonLeap
+--    then (march, d.val - (february.lastDayOfNonLeap))
+--  else if d.val <= april.lastDayOfNonLeap
+--    then (april, d.val - (march.lastDayOfNonLeap))
+--  else if d.val <= may.lastDayOfNonLeap
+--    then (may, d.val - (april.lastDayOfNonLeap))
+--  else if d.val <= june.lastDayOfNonLeap
+--    then (june, d.val - (may.lastDayOfNonLeap))
+--  else if d.val <= july.lastDayOfNonLeap
+--    then (july, d.val - (june.lastDayOfNonLeap))
+--  else if d.val <= august.lastDayOfNonLeap
+--    then (august, d.val - (july.lastDayOfNonLeap))
+--  else if d.val <= september.lastDayOfNonLeap
+--    then (september, d.val - (august.lastDayOfNonLeap))
+--  else if d.val <= october.lastDayOfNonLeap
+--    then (october, d.val - (september.lastDayOfNonLeap))
+--  else if d.val <= november.lastDayOfNonLeap
+--    then (november, d.val - (october.lastDayOfNonLeap))
+--  else
+--    (december, d.val - (november.lastDayOfNonLeap))
+
+--  def ofArray (od : OrdinalDate) : (Year × Month × Nat) :=
+--    if od.year.isLeapYear
+--    then
+--      let ⟨m, da⟩ := ofArrayLeap od.day
+--      (od.year, m, da)
+--    else
+--      let ⟨m, da⟩ := ofArrayNonLeap od.day
+--      ⟨od.year, m, da⟩
+--
+
+end OrdinalDate
